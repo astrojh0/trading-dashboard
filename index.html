@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交易追踪 - 数学优势系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; color: #1e293b; }
+  .container { max-width: 1300px; margin: 0 auto; padding: 24px; }
+  .card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-5 { grid-template-columns: repeat(5, 1fr); }
+  @media (max-width: 900px) { .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; } }
+  input, select, textarea { width: 100%; padding: 12px 16px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; transition: all 0.2s; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+  textarea { resize: vertical; min-height: 60px; }
+  .btn { padding: 12px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; position: relative; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: #6366f1; color: white; }
+  .btn-primary:hover { background: #4f46e5; transform: translateY(-1px); }
+  .btn-danger { background: #ef4444; color: white; }
+  .btn-success { background: #10b981; color: white; }
+  .btn-secondary { background: #f1f5f9; color: #475569; }
+  .btn-ghost { background: transparent; color: #6366f1; border: 1.5px solid #e0e7ff; }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+  .btn .spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+  .btn.loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .stat { text-align: center; padding: 20px; border-radius: 12px; background: #f8fafc; }
+  .stat-value { font-size: 26px; font-weight: 800; color: #1a1a2e; }
+  .stat-label { font-size: 12px; color: #64748b; margin-top: 6px; }
+  .stat.up { color: #10b981; }
+  .stat.down { color: #ef4444; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px; background: #f1f5f9; font-weight: 600; color: #475569; white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+  tr:hover { background: #f8fafc; }
+  .tag { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .tag-win { background: #d1fae5; color: #065f46; }
+  .tag-loss { background: #fee2e2; color: #991b1b; }
+  .tag-open { background: #dbeafe; color: #1e40af; }
+  .r-level { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-right: 6px; margin-bottom: 6px; }
+  .r-1 { background: #dbeafe; color: #1e40af; }
+  .r-2 { background: #c7d2fe; color: #3730a3; }
+  .r-3 { background: #a5b4fc; color: #312e81; }
+  .r-5 { background: #818cf8; color: #1e1b4b; }
+  .r-10 { background: #6366f1; color: white; }
+  .section { margin-bottom: 8px; }
+  .label { font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; display: block; }
+  .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+  .advice { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 0 12px 12px 0; margin-top: 16px; }
+  .advice-title { font-weight: 700; color: #92400e; margin-bottom: 8px; }
+  .advice-list { margin: 0; padding-left: 18px; color: #78350f; font-size: 13px; line-height: 1.8; }
+  .status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .status-ok { background: #d1fae5; color: #065f46; }
+  .status-warn { background: #fee2e2; color: #991b1b; }
+  .status-info { background: #dbeafe; color: #1e40af; }
+  .log { background: #0f172a; border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #94a3b8; font-family: "SF Mono", Monaco, monospace; max-height: 200px; overflow-y: auto; margin-top: 12px; line-height: 1.6; }
+  .log-item { margin-bottom: 4px; }
+  .log-ok { color: #4ade80; }
+  .log-err { color: #f87171; }
+  .log-info { color: #60a5fa; }
+  .log-warn { color: #fbbf24; }
+  .chart-container { background: #f8fafc; border-radius: 12px; padding: 16px; margin-top: 16px; }
+  .chart-title { font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 12px; }
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .checkbox-item { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 13px; }
+  .checkbox-item:hover { background: #f1f5f9; }
+  .checkbox-item input { width: auto; margin: 0; }
+  .hidden { display: none !important; }
+  .collapsible { cursor: pointer; user-select: none; }
+  .collapsible::after { content: " ▼"; font-size: 12px; color: #94a3b8; }
+  .collapsible.collapsed::after { content: " ▶"; }
+  .pos-amount { color: #10b981; font-weight: 700; }
+  .neg-amount { color: #ef4444; font-weight: 700; }
+  .suggestion-box { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px; margin-top: 12px; }
+  .suggestion-title { font-weight: 700; color: #065f46; font-size: 13px; margin-bottom: 6px; }
+  .suggestion-text { font-size: 13px; color: #047857; line-height: 1.6; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .toggle-switch { position: relative; width: 44px; height: 24px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #cbd5e1; border-radius: 24px; transition: 0.3s; }
+  .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+  .toggle-switch input:checked + .toggle-slider { background: #6366f1; }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+  .toggle-label { font-size: 13px; color: #475569; font-weight: 600; }
+
+  /* ===== 编辑弹窗 ===== */
+  .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+  .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.5); backdrop-filter: blur(2px); }
+  .modal-content { position: relative; background: #fff; border-radius: 16px; max-width: 640px; width: 92%; max-height: 90vh; overflow-y: auto; padding: 24px; z-index: 1001; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
+  .modal-header h3 { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #94a3b8; line-height: 1; padding: 4px; border-radius: 6px; transition: all 0.2s; }
+  .modal-close:hover { background: #f1f5f9; color: #475569; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+  .modal-body .grid { margin-top: 0; }
+
+  /* ===== 持仓行样式 ===== */
+  tr.position-row { background: color-mix(in srgb, #dbeafe 25%, transparent); }
+  tr.position-row:hover { background: color-mix(in srgb, #dbeafe 40%, transparent); }
+  .current-price-input { width: 80px; padding: 4px 8px; font-size: 13px; border: 1.5px solid #93c5fd; border-radius: 6px; text-align: center; background: #fff; }
+  .current-price-input:focus { outline: none; border-color: #6366f1; }
+  .float-pnl { font-weight: 700; font-size: 13px; }
+  .float-pnl.up { color: #10b981; }
+  .float-pnl.down { color: #ef4444; }
+  .refresh-btn { padding: 4px 8px; font-size: 11px; border-radius: 6px; border: none; background: #e0e7ff; color: #4338ca; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+  .refresh-btn:hover { background: #c7d2fe; }
+  .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .refresh-btn .spinner { display: none; width: 10px; height: 10px; border: 1.5px solid rgba(67,56,202,0.3); border-top-color: #4338ca; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 4px; }
+  .refresh-btn.loading .spinner { display: inline-block; }
+  .price-source-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #64748b; margin-left: 6px; }
+  .price-source-badge.manual { background: #fef3c7; color: #92400e; }
+  .price-source-badge.api { background: #d1fae5; color: #065f46; }
+
+  /* ===== Tab 导航 ===== */
+  .tab-nav { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
+  .tab-btn { padding: 10px 24px; border-radius: 10px; border: none; background: #f1f5f9; color: #475569; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .tab-btn:hover { background: #e2e8f0; }
+  .tab-btn.active { background: #6366f1; color: #fff; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ===== Humanmade 标签页 ===== */
+  .hm-form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .hm-form-grid { grid-template-columns: 1fr; } }
+  .hm-rate-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .hm-rate-note { font-size: 12px; color: #64748b; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Tab 导航 -->
+  <div class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="ztrade" onclick="switchTab('ztrade')">Z-trade</button>
+    <button class="tab-btn" data-tab="humanmade" onclick="switchTab('humanmade')">Humanmade</button>
+  </div>
+
+  <!-- Z-trade 标签页 -->
+  <div id="ztrade-tab" class="tab-content active">
+
+  <!-- 资金总览 -->
+  <div class="card">
+    <div class="title">💰 资金总览</div>
+    <div class="grid grid-5">
+      <div class="stat"><div class="stat-value" id="stat-capital">0</div><div class="stat-label">当前总资金</div></div>
+      <div class="stat"><div class="stat-value" id="stat-total-pnl">0</div><div class="stat-label">累计盈亏</div></div>
+      <div class="stat"><div class="stat-value" id="stat-floating">0</div><div class="stat-label">持仓浮动盈亏</div></div>
+      <div class="stat"><div class="stat-value" id="stat-positions">0</div><div class="stat-label">持仓笔数</div></div>
+      <div class="stat"><div class="stat-value" id="stat-expectancy">0</div><div class="stat-label">期望值 (R)</div></div>
+    </div>
+    <div class="grid grid-5" style="margin-top: 12px;">
+      <div class="stat"><div class="stat-value" id="stat-total">0</div><div class="stat-label">总交易笔数</div></div>
+      <div class="stat"><div class="stat-value" id="stat-winrate">0%</div><div class="stat-label">胜率</div></div>
+      <div class="stat"><div class="stat-value" id="stat-rr">0</div><div class="stat-label">平均盈亏比</div></div>
+      <div class="stat"><div class="stat-value" id="stat-avg-r">0</div><div class="stat-label">平均 R</div></div>
+      <div class="stat"><div class="stat-value" id="stat-maxdd">0%</div><div class="stat-label">最大回撤</div></div>
+    </div>
+    <div class="grid grid-5" style="margin-top: 12px;">
+      <div class="stat"><div class="stat-value" id="stat-consec">-</div><div class="stat-label">当前连赢/连输</div></div>
+      <div class="stat"><div class="stat-value" id="stat-sharpe">0</div><div class="stat-label">夏普比率(简化)</div></div>
+      <div class="stat" style="grid-column: 3 / 6; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <button class="btn btn-secondary" style="font-size: 12px; padding: 8px 16px;" onclick="refreshAllPositionPrices()">🔄 刷新全部持仓价格</button>
+        <span id="price-source-badge" class="price-source-badge manual">手动模式</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设置面板 -->
+  <div class="card">
+    <div class="title collapsible" onclick="toggleCollapse(this,'settings-content')">⚙️ 设置面板（点击展开）</div>
+    <div id="settings-content" style="display:none;">
+      <div class="grid grid-2">
+        <div class="section">
+          <label class="label">初始本金</label>
+          <input type="number" id="cfg-capital" value="100000" step="1000">
+          <div class="hint">用于计算权益曲线和单笔风险金额</div>
+        </div>
+        <div class="section">
+          <label class="label">单笔交易风险比例 (%)</label>
+          <input type="number" id="cfg-risk" value="1" step="0.1" min="0.1" max="10">
+          <div class="hint">每笔交易最多承担总资金的百分之几，建议 1%-2%</div>
+        </div>
+        <div class="section">
+          <label class="label">R 值宽容度 (%)</label>
+          <input type="number" id="cfg-tolerance" value="10" step="1" min="0" max="50">
+          <div class="hint">实际 R 值在标准刻度的 ±N% 内，归类为该刻度。如 10% 表示 0.9R~1.1R 都算 1R</div>
+        </div>
+        <div class="section">
+          <label class="label">标准 R 值刻度</label>
+          <div style="padding: 10px 0; font-size: 13px; color: #64748b;">0.25R → 0.5R → 0.75R → 1R → 1.5R → 2R → 2.5R → 3R → 5R → 10R</div>
+          <div class="hint">宽容度归类时使用的标准刻度序列</div>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-switch"><input type="checkbox" id="cfg-use-norm-r" onchange="toggleNormalizedR()"><span class="toggle-slider"></span></label>
+        <span class="toggle-label">使用宽容度归类 R 值（统计/列表/图表显示标准刻度）</span>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-switch"><input type="checkbox" id="cfg-auto-pull" onchange="toggleAutoSync()"><span class="toggle-slider"></span></label>
+        <span class="toggle-label">页面加载时自动从云端恢复数据</span>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-switch"><input type="checkbox" id="cfg-auto-push" onchange="toggleAutoSync()"><span class="toggle-slider"></span></label>
+        <span class="toggle-label">交易变更后自动同步到云端</span>
+      </div>
+      <div class="r-divider" style="margin: 16px 0;"></div>
+      <div class="title" style="font-size: 16px; margin-bottom: 12px;">📡 实时行情配置</div>
+      <div class="grid grid-2">
+        <div class="section">
+          <label class="label">数据源</label>
+          <select id="cfg-price-source" onchange="onPriceSourceChange()">
+            <option value="manual">手动输入（默认）</option>
+            <option value="tencent">腾讯股票（A股/港股/美股）</option>
+            <option value="sina">新浪财经（A股/港股/美股）</option>
+            <option value="alphavantage">Alpha Vantage（美股，需API Key）</option>
+            <option value="finnhub">Finnhub（美股，需API Key）</option>
+          </select>
+          <div class="hint">选择自动获取实时价格的数据源</div>
+        </div>
+        <div class="section" id="cfg-price-key-section" style="display:none;">
+          <label class="label">API Key</label>
+          <input type="password" id="cfg-price-key" placeholder="输入 API Key">
+          <div class="hint" id="price-key-hint">Alpha Vantage 免费版限 5次/分钟</div>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle-switch"><input type="checkbox" id="cfg-auto-refresh" onchange="toggleAutoRefresh()"><span class="toggle-slider"></span></label>
+        <span class="toggle-label">页面加载时自动刷新持仓价格</span>
+      </div>
+      <div style="margin-top: 16px;">
+        <label class="label">📋 交易表单中显示的字段</label>
+        <div class="checkbox-group" id="field-checkboxes"></div>
+      </div>
+      <div style="margin-top: 16px;">
+        <label class="label">📊 看板中展示的组件</label>
+        <div class="checkbox-group" id="dashboard-checkboxes"></div>
+      </div>
+      <div style="margin-top: 16px; display: flex; gap: 10px;">
+        <button class="btn btn-primary" onclick="saveSettingsForm()">保存设置</button>
+        <button class="btn btn-ghost" onclick="resetSettings()">恢复默认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GitHub 云同步 -->
+  <div class="card">
+    <div class="title">☁️ GitHub 云同步配置</div>
+    <div class="grid grid-2">
+      <div class="section"><label class="label">GitHub Personal Access Token (classic)</label><input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx"></div>
+      <div class="section"><label class="label">Gist ID (首次留空，自动创建)</label><input type="text" id="gh-gist-id" placeholder="如: a1b2c3d4e5f6..."></div>
+    </div>
+    <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+      <button class="btn btn-primary" id="btn-save" onclick="saveGitHubConfig()">💾 保存配置到本地</button>
+      <button class="btn btn-success" id="btn-push" onclick="pushToGitHub()"><span class="spinner"></span>⬆️ 同步到云端</button>
+      <button class="btn btn-secondary" id="btn-pull" onclick="pullFromGitHub()"><span class="spinner"></span>⬇️ 从云端恢复</button>
+      <button class="btn btn-secondary" id="btn-test" onclick="testConnection()"><span class="spinner"></span>🔌 测试连接</button>
+      <button class="btn btn-ghost" id="btn-sync-url" onclick="generateSyncUrl()">📱 生成手机同步链接</button>
+      <span id="sync-status" class="status status-warn">未配置</span>
+    </div>
+    <div class="log" id="sync-log"><div class="log-item log-info">[系统] 诊断日志就绪。点击"测试连接"查看详细结果。</div></div>
+    <div id="sync-url-box" style="display:none; margin-top: 16px; padding: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px;">
+      <div class="label" style="color:#0369a1;">📱 手机同步链接（包含 Token，勿分享给他人）</div>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <input type="text" id="sync-url" readonly style="background:#fff; color:#0c4a6e; font-family: monospace; font-size: 12px;">
+        <button class="btn btn-secondary" style="white-space: nowrap;" onclick="copySyncUrl()">复制链接</button>
+      </div>
+      <div class="hint" style="color:#0284c7; margin-top: 6px;">手机浏览器打开此链接即可自动登录并拉取数据。建议收藏到浏览器书签或微信收藏。</div>
+    </div>
+  </div>
+
+  <!-- 新增交易 -->
+  <div class="card">
+    <div class="title">➕ 新增交易</div>
+    <div class="grid grid-3" id="trade-form-grid">
+      <div class="section field-symbol"><label class="label">股票代码 *</label><input type="text" id="input-symbol" placeholder="如: AAPL, 600519"></div>
+      <div class="section field-direction"><label class="label">方向 *</label><select id="input-direction"><option value="long">做多 (Long)</option><option value="short">做空 (Short)</option></select></div>
+      <div class="section field-entry"><label class="label">买入价 *</label><input type="number" step="0.01" id="input-entry" placeholder="入场价格"></div>
+      <div class="section field-stop"><label class="label">止损价 *</label><input type="number" step="0.01" id="input-stop" placeholder="止损价格"></div>
+      <div class="section field-exit"><label class="label">卖出价（留空=持仓中）</label><input type="number" step="0.01" id="input-exit" placeholder="出场价格"></div>
+      <div class="section field-shares">
+        <label class="label">股数/手数 *</label>
+        <input type="number" id="input-shares" placeholder="如: 100">
+        <div class="hint" id="shares-hint" style="color:#6366f1;font-weight:600;"></div>
+      </div>
+      <div class="section field-entryDate"><label class="label">买入日期 *</label><input type="date" id="input-entry-date"></div>
+      <div class="section field-exitDate"><label class="label">卖出日期</label><input type="date" id="input-exit-date"></div>
+      <div class="section field-strategy hidden"><label class="label">策略标签</label><select id="input-strategy"><option value="">-- 选择策略 --</option><option value="趋势突破">趋势突破</option><option value="回调买入">回调买入</option><option value="均值回归">均值回归</option><option value="突破回踩">突破回踩</option><option value="日内 scalp">日内 scalp</option><option value="波段持有">波段持有</option><option value="其他">其他</option></select></div>
+      <div class="section field-timeframe hidden"><label class="label">时间框架</label><select id="input-timeframe"><option value="">-- 选择周期 --</option><option value="日内">日内</option><option value="短线(1-5天)">短线(1-5天)</option><option value="波段(1-4周)">波段(1-4周)</option><option value="趋势(1月+)">趋势(1月+)</option></select></div>
+      <div class="section field-mood hidden"><label class="label">交易情绪 (1-5)</label><select id="input-mood"><option value="">-- 评分 --</option><option value="5">5 - 极佳，专注冷静</option><option value="4">4 - 良好，有信心</option><option value="3">3 - 一般，平常心</option><option value="2">2 - 焦虑，有点慌</option><option value="1">1 - 很差，情绪化</option></select></div>
+      <div class="section field-plannedTarget hidden"><label class="label">计划止盈价</label><input type="number" step="0.01" id="input-planned" placeholder="原计划出场位置"></div>
+      <div class="section field-notes hidden"><label class="label">交易笔记</label><textarea id="input-notes" placeholder="记录当时的想法、市场环境..."></textarea></div>
+    </div>
+    <div class="suggestion-box" id="position-suggestion" style="display:none;">
+      <div class="suggestion-title">💡 仓位建议</div>
+      <div class="suggestion-text" id="suggestion-text"></div>
+    </div>
+    <div id="r-calculator" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      <div class="label">📐 止盈位计算 (R = 风险单位)</div>
+      <div id="r-levels" style="margin-top: 10px;"><span style="color: #94a3b8; font-size: 13px;">输入买入价和止损价后自动计算...</span></div>
+    </div>
+    <div style="margin-top: 16px;"><button class="btn btn-primary" style="width: 100%;" onclick="addTrade()">➕ 添加交易</button></div>
+  </div>
+
+  <!-- 权益曲线 -->
+  <div class="card dashboard-equityCurve hidden">
+    <div class="title">📈 权益曲线</div>
+    <div class="chart-container"><canvas id="equity-chart" height="200"></canvas></div>
+  </div>
+
+  <!-- R值分布 -->
+  <div class="card dashboard-rDistribution hidden">
+    <div class="title">📊 R 值分布</div>
+    <div class="chart-container"><canvas id="r-dist-chart" height="180"></canvas></div>
+  </div>
+
+  <!-- 月度汇总 -->
+  <div class="card dashboard-monthlySummary hidden">
+    <div class="title">📅 月度盈亏汇总</div>
+    <div style="overflow-x: auto;">
+      <table id="monthly-table"><thead><tr><th>月份</th><th>交易笔数</th><th>胜率</th><th>总盈亏(元)</th><th>平均R</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <!-- 交易列表 -->
+  <div class="card">
+    <div class="title" style="justify-content: space-between;">
+      <span>📋 交易记录</span>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" onclick="exportJSON()">📤 导出 JSON</button>
+        <label class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; cursor: pointer;">📥 导入 JSON<input type="file" accept=".json" style="display: none;" onchange="importJSON(this)"></label>
+        <button class="btn btn-danger" style="padding: 6px 14px; font-size: 12px;" onclick="clearAll()">清空全部</button>
+      </div>
+    </div>
+    <div style="overflow-x: auto;">
+      <table>
+        <thead id="trade-table-head"><tr><th>股票</th><th>方向</th><th>入场</th><th>止损</th><th>出场</th><th>股数</th><th>当前价</th><th>浮动盈亏</th><th>盈亏(R)</th><th>盈亏(元)</th><th>结果</th><th>持仓天数</th><th>操作</th></tr></thead>
+        <tbody id="trade-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 策略建议 -->
+  <div class="card">
+    <div class="title">🧠 系统优化建议</div>
+    <div class="advice">
+      <div class="advice-title">基于当前数据，建议关注以下维度：</div>
+      <ul class="advice-list" id="dynamic-advice"><li>开始记录交易后，这里会生成个性化建议</li></ul>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- Humanmade 标签页 -->
+  <div id="humanmade-tab" class="tab-content">
+
+    <!-- TWD 资金总览 -->
+    <div class="card">
+      <div class="title">💰 TWD 资金总览</div>
+      <div class="grid grid-5">
+        <div class="stat"><div class="stat-value" id="hm-stat-total-assets">0</div><div class="stat-label">当前总资产</div></div>
+        <div class="stat"><div class="stat-value" id="hm-stat-net-cashflow">0</div><div class="stat-label">净入金</div></div>
+        <div class="stat"><div class="stat-value" id="hm-stat-realized-pnl">0</div><div class="stat-label">累计已实现交易盈亏</div></div>
+        <div class="stat"><div class="stat-value" id="hm-stat-fx-pnl">0</div><div class="stat-label">累计 FX PnL</div></div>
+        <div class="stat"><div class="stat-value" id="hm-stat-position-shares">0</div><div class="stat-label">持仓股数</div></div>
+      </div>
+      <div class="grid grid-5" style="margin-top: 12px;">
+        <div class="stat"><div class="stat-value" id="hm-stat-position-value">0</div><div class="stat-label">当前持仓市值 (TWD)</div></div>
+        <div class="stat" style="grid-column: 2 / 6; display: flex; align-items: center; justify-content: center; gap: 10px;">
+          <label class="label" style="margin-bottom:0;">Humanmade 初始本金 (TWD):</label>
+          <input type="number" id="hm-initial-capital" value="100000" step="1000" style="max-width: 160px;">
+          <button class="btn btn-primary" style="font-size: 12px; padding: 8px 16px;" onclick="saveHumanmadeInitialCapital()">保存本金</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新增 Humanmade 交易 -->
+    <div class="card">
+      <div class="title">➕ 新增 Humanmade 交易</div>
+      <div class="hm-form-grid">
+        <div class="section"><label class="label">日期 *</label><input type="date" id="hm-trade-date"></div>
+        <div class="section"><label class="label">方向 *</label><select id="hm-trade-type"><option value="buy">买入 (Buy)</option><option value="sell">卖出 (Sell)</option></select></div>
+        <div class="section"><label class="label">股数 *</label><input type="number" id="hm-trade-shares" placeholder="如: 100" min="1" step="1"></div>
+        <div class="section"><label class="label">JPY 单价 *</label><input type="number" id="hm-trade-jpy" placeholder="如: 1000" step="0.01"></div>
+        <div class="section"><label class="label">实际 TWD 金额 *</label><input type="number" id="hm-trade-twd" placeholder="如: 20000" step="0.01"></div>
+        <div class="section"><label class="label">券商汇率 (1 JPY = ? TWD)</label><input type="number" id="hm-trade-broker-rate" placeholder="自动计算" step="0.000001"></div>
+        <div class="section"><label class="label">市场汇率 (1 JPY = ? TWD)</label><input type="number" id="hm-trade-market-rate" placeholder="自动获取" step="0.000001"></div>
+        <div class="section"><label class="label">备注</label><input type="text" id="hm-trade-notes" placeholder="可选"></div>
+      </div>
+      <div class="hm-rate-row" style="margin-top: 12px;">
+        <div class="hm-rate-note">券商汇率 = 实际 TWD / (股数 × JPY 单价)，自动计算，可手动覆盖。</div>
+        <div class="hm-rate-note">市场汇率优先从 Frankfurter API 获取；若失败请手动输入。</div>
+      </div>
+      <div style="margin-top: 16px; display: flex; gap: 10px;">
+        <button class="btn btn-secondary" onclick="fetchMarketRateForForm()">🔌 获取市场汇率</button>
+        <button class="btn btn-primary" style="flex: 1;" onclick="addHumanmadeTrade()">➕ 添加交易</button>
+      </div>
+    </div>
+
+    <!-- 现金流管理 -->
+    <div class="card">
+      <div class="title">💳 现金流管理</div>
+      <div class="hm-form-grid">
+        <div class="section"><label class="label">日期 *</label><input type="date" id="hm-cash-date"></div>
+        <div class="section"><label class="label">类型 *</label><select id="hm-cash-type"><option value="deposit">汇入 (Deposit)</option><option value="withdrawal">汇出 (Withdrawal)</option></select></div>
+        <div class="section"><label class="label">金额 (TWD) *</label><input type="number" id="hm-cash-amount" placeholder="如: 50000" step="0.01"></div>
+        <div class="section"><label class="label">备注</label><input type="text" id="hm-cash-notes" placeholder="可选"></div>
+      </div>
+      <div style="margin-top: 16px;"><button class="btn btn-primary" style="width: 100%;" onclick="addHumanmadeCashflow()">➕ 添加现金流</button></div>
+    </div>
+
+    <!-- 实际汇率趋势 -->
+    <div class="card">
+      <div class="title">📈 券商汇率 vs 市场汇率</div>
+      <div class="chart-container"><canvas id="hm-fx-rate-chart" height="200"></canvas></div>
+    </div>
+
+    <!-- 累计 FX PnL -->
+    <div class="card">
+      <div class="title">📊 累计 FX PnL</div>
+      <div class="chart-container"><canvas id="hm-fx-pnl-chart" height="200"></canvas></div>
+    </div>
+
+    <!-- TWD 资本曲线 -->
+    <div class="card">
+      <div class="title">📈 TWD 资本曲线</div>
+      <div class="chart-container"><canvas id="hm-equity-chart" height="200"></canvas></div>
+    </div>
+
+    <!-- Humanmade 交易记录 -->
+    <div class="card">
+      <div class="title" style="justify-content: space-between;">
+        <span>📋 Humanmade 交易记录</span>
+        <span id="hm-last-active-rate-info" class="hint"></span>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead><tr><th>日期</th><th>方向</th><th>股数</th><th>JPY 单价</th><th>实际 TWD</th><th>券商汇率</th><th>市场汇率</th><th>FX PnL</th><th>汇率来源</th><th>备注</th><th>操作</th></tr></thead>
+          <tbody id="hm-trade-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 现金流记录 -->
+    <div class="card">
+      <div class="title">📋 现金流记录</div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead><tr><th>日期</th><th>类型</th><th>金额</th><th>备注</th><th>操作</th></tr></thead>
+          <tbody id="hm-cashflow-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- 编辑交易弹窗 -->
+<div id="edit-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeEditModal()"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>✏️ 编辑交易</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body" id="edit-form-body">
+      <div class="grid grid-3">
+        <div class="section"><label class="label">股票代码 *</label><input type="text" id="edit-symbol"></div>
+        <div class="section"><label class="label">方向 *</label><select id="edit-direction"><option value="long">做多 (Long)</option><option value="short">做空 (Short)</option></select></div>
+        <div class="section"><label class="label">买入价 *</label><input type="number" step="0.01" id="edit-entry"></div>
+        <div class="section"><label class="label">止损价 *</label><input type="number" step="0.01" id="edit-stop"></div>
+        <div class="section"><label class="label">卖出价</label><input type="number" step="0.01" id="edit-exit" placeholder="留空=持仓中"></div>
+        <div class="section"><label class="label">股数/手数 *</label><input type="number" id="edit-shares"></div>
+        <div class="section"><label class="label">买入日期 *</label><input type="date" id="edit-entry-date"></div>
+        <div class="section"><label class="label">卖出日期</label><input type="date" id="edit-exit-date"></div>
+        <div class="section"><label class="label">策略标签</label><select id="edit-strategy"><option value="">-- 选择策略 --</option><option value="趋势突破">趋势突破</option><option value="回调买入">回调买入</option><option value="均值回归">均值回归</option><option value="突破回踩">突破回踩</option><option value="日内 scalp">日内 scalp</option><option value="波段持有">波段持有</option><option value="其他">其他</option></select></div>
+        <div class="section"><label class="label">时间框架</label><select id="edit-timeframe"><option value="">-- 选择周期 --</option><option value="日内">日内</option><option value="短线(1-5天)">短线(1-5天)</option><option value="波段(1-4周)">波段(1-4周)</option><option value="趋势(1月+)">趋势(1月+)</option></select></div>
+        <div class="section"><label class="label">交易情绪 (1-5)</label><select id="edit-mood"><option value="">-- 评分 --</option><option value="5">5 - 极佳</option><option value="4">4 - 良好</option><option value="3">3 - 一般</option><option value="2">2 - 焦虑</option><option value="1">1 - 很差</option></select></div>
+        <div class="section"><label class="label">计划止盈价</label><input type="number" step="0.01" id="edit-planned"></div>
+        <div class="section" style="grid-column: 1 / -1;"><label class="label">交易笔记</label><textarea id="edit-notes" rows="3"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveEdit()">💾 保存修改</button>
+      <button class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== 配置定义 ====================
+const FIELD_DEFS = [
+  { key: 'symbol', label: '股票代码', default: true, required: true },
+  { key: 'direction', label: '方向', default: true, required: true },
+  { key: 'entry', label: '买入价', default: true, required: true },
+  { key: 'stop', label: '止损价', default: true, required: true },
+  { key: 'exit', label: '卖出价', default: true },
+  { key: 'shares', label: '股数/手数', default: true, required: true },
+  { key: 'entryDate', label: '买入日期', default: true, required: true },
+  { key: 'exitDate', label: '卖出日期', default: true },
+  { key: 'strategy', label: '策略标签', default: false },
+  { key: 'timeframe', label: '时间框架', default: false },
+  { key: 'mood', label: '交易情绪', default: false },
+  { key: 'plannedTarget', label: '计划止盈', default: false },
+  { key: 'notes', label: '交易笔记', default: false },
+];
+const DASHBOARD_DEFS = [
+  { key: 'equityCurve', label: '权益曲线', default: true },
+  { key: 'rDistribution', label: 'R值分布图', default: true },
+  { key: 'monthlySummary', label: '月度盈亏汇总', default: true },
+];
+const DEFAULT_SETTINGS = {
+  initialCapital: 100000,
+  riskPerTrade: 1.0,
+  rTolerance: 10,
+  useNormalizedR: false,
+  priceSource: 'manual',
+  priceApiKey: '',
+  autoRefresh: false,
+  autoPull: false,
+  autoPush: false,
+  visibleFields: FIELD_DEFS.filter(f => f.default).map(f => f.key),
+  visibleDashboards: DASHBOARD_DEFS.filter(d => d.default).map(d => d.key),
+  humanmadeInitialCapital: 100000,
+};
+
+// ==================== 数据层 ====================
+let trades = JSON.parse(localStorage.getItem('trades_v2') || '[]');
+let ghConfig = JSON.parse(localStorage.getItem('ghConfig') || '{}');
+let settings = JSON.parse(localStorage.getItem('settings') || JSON.stringify(DEFAULT_SETTINGS));
+let positionPrices = JSON.parse(localStorage.getItem('positionPrices') || '{}'); // { symbol: price }
+let equitySnapshots = JSON.parse(localStorage.getItem('equitySnapshots') || '[]'); // [{ date, equity, source, timestamp }]
+
+// Humanmade 独立数据模型
+let humanmadeTrades = JSON.parse(localStorage.getItem('humanmade_trades_v1') || '[]');
+let humanmadeCashflows = JSON.parse(localStorage.getItem('humanmade_cashflows_v1') || '[]');
+let humanmadeFxCache = JSON.parse(localStorage.getItem('humanmade_fx_cache_v1') || '{}'); // { 'YYYY-MM-DD': rate }
+
+// 保存到 localStorage 的底层函数（改名避免和 UI 函数冲突）
+function persistTrades() { localStorage.setItem('trades_v2', JSON.stringify(trades)); }
+function persistSettings() { localStorage.setItem('settings', JSON.stringify(settings)); }
+function persistPositionPrices() { localStorage.setItem('positionPrices', JSON.stringify(positionPrices)); }
+function persistGHConfig() { localStorage.setItem('ghConfig', JSON.stringify(ghConfig)); }
+function persistEquitySnapshots() { localStorage.setItem('equitySnapshots', JSON.stringify(equitySnapshots)); }
+function persistHumanmadeTrades() { localStorage.setItem('humanmade_trades_v1', JSON.stringify(humanmadeTrades)); }
+function persistHumanmadeCashflows() { localStorage.setItem('humanmade_cashflows_v1', JSON.stringify(humanmadeCashflows)); }
+function persistHumanmadeFxCache() { localStorage.setItem('humanmade_fx_cache_v1', JSON.stringify(humanmadeFxCache)); }
+
+// ==================== 工具函数 ====================
+function log(msg, type = 'info') {
+  const el = document.getElementById('sync-log');
+  const time = new Date().toLocaleTimeString('zh-CN');
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : type === 'warn' ? 'log-warn' : 'log-info';
+  el.innerHTML += `<div class="log-item ${cls}">[${time}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('sync-log').innerHTML = ''; }
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) btn.classList.add('loading');
+  else btn.classList.remove('loading');
+}
+function toggleCollapse(header, contentId) {
+  const content = document.getElementById(contentId);
+  header.classList.toggle('collapsed');
+  content.style.display = content.style.display === 'none' ? 'block' : 'none';
+}
+function switchTab(name) {
+  localStorage.setItem('lastActiveTab', name);
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === name + '-tab');
+  });
+  if (name === 'humanmade') renderHumanmade();
+}
+
+// ==================== 核心计算 ====================
+function getRiskAmount() {
+  return settings.initialCapital * (settings.riskPerTrade / 100);
+}
+function calculateR(entry, stop, exit, direction) {
+  const riskPerShare = Math.abs(entry - stop);
+  if (riskPerShare === 0) return 0;
+  const profitPerShare = direction === 'long' ? (exit - entry) : (entry - exit);
+  return profitPerShare / riskPerShare;
+}
+function calculateActualPnl(entry, exit, direction, shares) {
+  if (!exit) return 0;
+  const diff = direction === 'long' ? (exit - entry) : (entry - exit);
+  return diff * shares;
+}
+
+// ==================== R 值宽容度归类 ====================
+const R_SCALES = [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 5, 10];
+
+function normalizeR(r, tolerancePct) {
+  if (tolerancePct === undefined || tolerancePct === null) tolerancePct = settings.rTolerance || 10;
+  if (!tolerancePct || tolerancePct <= 0) return r;
+  if (r === 0) return 0;
+  const absR = Math.abs(r);
+  for (const scale of R_SCALES) {
+    const lower = scale * (1 - tolerancePct / 100);
+    const upper = scale * (1 + tolerancePct / 100);
+    if (absR >= lower && absR <= upper) {
+      return r >= 0 ? scale : -scale;
+    }
+  }
+  return r;
+}
+
+function getDisplayR(r) {
+  if (!settings.useNormalizedR) return { value: r, isNormalized: false };
+  const normalized = normalizeR(r, settings.rTolerance);
+  return { value: normalized, isNormalized: normalized !== r, raw: r };
+}
+
+// ==================== 浮动盈亏计算 ====================
+function calculateFloatingPnl(entry, currentPrice, direction, shares) {
+  if (!currentPrice || currentPrice <= 0) return 0;
+  const diff = direction === 'long' ? (currentPrice - entry) : (entry - currentPrice);
+  return diff * shares;
+}
+function calculateFloatingR(entry, stop, currentPrice, direction) {
+  if (!currentPrice || currentPrice <= 0) return 0;
+  const riskPerShare = Math.abs(entry - stop);
+  if (riskPerShare === 0) return 0;
+  const profitPerShare = direction === 'long' ? (currentPrice - entry) : (entry - currentPrice);
+  return profitPerShare / riskPerShare;
+}
+
+// ==================== 每日权益快照 ====================
+function getCurrentTotalEquity() {
+  const s = computeStats();
+  return settings.initialCapital + s.totalPnl + s.floatingPnl;
+}
+
+async function recordEquitySnapshot(force = false) {
+  const today = new Date().toISOString().slice(0, 10);
+  const existingIndex = equitySnapshots.findIndex(snap => snap.date === today);
+  if (existingIndex >= 0 && !force) return;
+
+  // 非手动模式下先刷新持仓价格，再记录快照
+  if (settings.priceSource !== 'manual') {
+    try {
+      log(`🔄 每日快照：刷新持仓价格...`, 'info');
+      await refreshAllPositionPrices();
+    } catch (e) {
+      log(`⚠️ 每日快照刷新价格失败，使用已有价格: ${e.message}`, 'warn');
+    }
+  }
+
+  const equity = getCurrentTotalEquity();
+  const snapshot = { date: today, equity, source: settings.priceSource, timestamp: Date.now() };
+  if (existingIndex >= 0) {
+    equitySnapshots[existingIndex] = snapshot;
+  } else {
+    equitySnapshots.push(snapshot);
+  }
+  persistEquitySnapshots();
+  renderAll();
+  log(`✅ 权益快照已记录: ${today} ${formatMoney(equity)}`, 'ok');
+}
+
+function getEquitySeries() {
+  const sorted = [...equitySnapshots].sort((a, b) => new Date(a.date) - new Date(b.date));
+  if (sorted.length === 0) {
+    // 没有快照时回退到原有闭盘权益曲线
+    const s = computeStats();
+    return { series: s.equity, labels: [] };
+  }
+  const series = [settings.initialCapital, ...sorted.map(s => s.equity)];
+  const labels = ['初始', ...sorted.map(s => s.date.slice(5))]; // 显示 MM-DD
+  return { series, labels };
+}
+
+function scheduleDailySnapshot() {
+  // 每分钟检查一次，若在 09:00 且当天未记录，则自动记录
+  setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 9 && now.getMinutes() === 0) {
+      recordEquitySnapshot();
+    }
+  }, 60000);
+}
+
+// ==================== 实时价格获取 ====================
+function convertSymbolForAPI(symbol, source) {
+  const s = symbol.trim().toUpperCase();
+  if (source === 'tencent' || source === 'sina') {
+    // 纯数字判断
+    if (/^\d{6}$/.test(s)) {
+      if (s.startsWith('6')) return 'sh' + s;
+      return 'sz' + s;
+    }
+    if (/^\d{5}$/.test(s)) return 'hk0' + s;
+    if (/^\d{4}$/.test(s)) return 'hk00' + s;
+    if (/^[A-Z]+$/.test(s)) return 'us' + s;
+    return s;
+  }
+  return s; // Alpha Vantage / Finnhub 直接用原始 symbol
+}
+
+function fetchTencentPrice(symbol) {
+  return new Promise((resolve, reject) => {
+    const ts = convertSymbolForAPI(symbol, 'tencent');
+    const script = document.createElement('script');
+    const varName = 'v_' + ts;
+    script.src = 'https://qt.gtimg.cn/q=' + ts;
+    script.onload = () => {
+      try {
+        const data = window[varName];
+        if (data) {
+          const parts = data.split('~');
+          const price = parseFloat(parts[3]);
+          if (!isNaN(price) && price > 0) { resolve(price); return; }
+        }
+        reject(new Error('腾讯接口未返回有效价格'));
+      } catch (e) { reject(e); }
+      finally { if (script.parentNode) script.parentNode.removeChild(script); }
+    };
+    script.onerror = () => { reject(new Error('腾讯接口加载失败')); if (script.parentNode) script.parentNode.removeChild(script); };
+    document.head.appendChild(script);
+  });
+}
+
+function fetchSinaPrice(symbol) {
+  return new Promise((resolve, reject) => {
+    const ts = convertSymbolForAPI(symbol, 'sina');
+    const script = document.createElement('script');
+    const varName = 'hq_str_' + ts;
+    script.src = 'https://hq.sinajs.cn/list=' + ts;
+    script.onload = () => {
+      try {
+        const data = window[varName];
+        if (data) {
+          const parts = data.split(',');
+          const price = parseFloat(parts[1]);
+          if (!isNaN(price) && price > 0) { resolve(price); return; }
+        }
+        reject(new Error('新浪接口未返回有效价格'));
+      } catch (e) { reject(e); }
+      finally { if (script.parentNode) script.parentNode.removeChild(script); }
+    };
+    script.onerror = () => { reject(new Error('新浪接口加载失败')); if (script.parentNode) script.parentNode.removeChild(script); };
+    document.head.appendChild(script);
+  });
+}
+
+async function fetchAlphaVantagePrice(symbol) {
+  const key = settings.priceApiKey;
+  if (!key) throw new Error('请先配置 Alpha Vantage API Key');
+  const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${key}`);
+  const data = await res.json();
+  const price = parseFloat(data['Global Quote']?.['05. price']);
+  if (isNaN(price) || price <= 0) throw new Error('Alpha Vantage 未返回有效价格');
+  return price;
+}
+
+async function fetchFinnhubPrice(symbol) {
+  const key = settings.priceApiKey;
+  if (!key) throw new Error('请先配置 Finnhub API Key');
+  const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${key}`);
+  const data = await res.json();
+  const price = parseFloat(data.c);
+  if (isNaN(price) || price <= 0) throw new Error('Finnhub 未返回有效价格');
+  return price;
+}
+
+async function fetchPrice(symbol) {
+  const source = settings.priceSource || 'manual';
+  if (source === 'manual') throw new Error('当前为手动模式，请直接输入当前价格');
+  if (source === 'tencent') return fetchTencentPrice(symbol);
+  if (source === 'sina') return fetchSinaPrice(symbol);
+  if (source === 'alphavantage') return fetchAlphaVantagePrice(symbol);
+  if (source === 'finnhub') return fetchFinnhubPrice(symbol);
+  throw new Error('未知数据源: ' + source);
+}
+
+// ==================== Humanmade FX 汇率 API ====================
+const HUMANMADE_SYMBOL = 'HUMAN MADE 456A';
+
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+async function fetchMarketRate(date) {
+  const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/jpy.json`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API HTTP ${res.status}`);
+  const data = await res.json();
+  const rate = parseFloat(data?.jpy?.twd);
+  if (isNaN(rate) || rate <= 0) throw new Error('API 未返回有效 TWD 汇率');
+  return rate; // 1 JPY = ? TWD
+}
+
+async function getMarketRateWithFallback(date, tryPreviousDays = 5) {
+  // 先读缓存
+  if (humanmadeFxCache[date]) return { rate: humanmadeFxCache[date], source: 'cache' };
+  let lastError = '';
+  for (let i = 0; i <= tryPreviousDays; i++) {
+    const tryDate = addDays(date, -i);
+    try {
+      const rate = await fetchMarketRate(tryDate);
+      humanmadeFxCache[date] = rate;
+      persistHumanmadeFxCache();
+      return { rate, source: i === 0 ? 'api' : `api(${tryDate} 补)` };
+    } catch (e) {
+      lastError = e.message;
+    }
+  }
+  return { rate: null, source: 'error', error: lastError };
+}
+
+async function fetchMarketRateForForm() {
+  const date = document.getElementById('hm-trade-date').value;
+  if (!date) { alert('请先填写交易日期'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.classList.add('loading');
+  try {
+    const result = await getMarketRateWithFallback(date);
+    if (result.rate !== null) {
+      document.getElementById('hm-trade-market-rate').value = result.rate.toFixed(6);
+      log(`✅ ${date} 市场汇率: ${result.rate.toFixed(6)} (${result.source})`, 'ok');
+    } else {
+      alert(`获取市场汇率失败: ${result.error}\n请手动输入市场汇率。`);
+      log(`✖ ${date} 汇率获取失败: ${result.error}`, 'err');
+    }
+  } finally {
+    btn.disabled = false; btn.classList.remove('loading');
+  }
+}
+
+async function populateMarketRate(date) {
+  if (!date) return null;
+  const result = await getMarketRateWithFallback(date);
+  return result.rate;
+}
+
+function calculateBrokerRate(shares, jpyPrice, twdAmount) {
+  const jpyTotal = shares * jpyPrice;
+  if (jpyTotal <= 0) return 0;
+  return twdAmount / jpyTotal;
+}
+
+function calculateTradeFxPnl(trade) {
+  const theoretical = trade.shares * trade.jpyPrice * trade.marketRate;
+  // 统一按 spec 示例：FX PnL = 理论 TWD - 实际 TWD
+  // 买入示例：100*1000*0.21 - 20000 = +1000（券商汇率更优，付出更少）
+  return theoretical - trade.twdAmount;
+}
+
+function getNetCashflow() {
+  return humanmadeCashflows.reduce((sum, c) => {
+    return sum + (c.type === 'deposit' ? c.amount : -c.amount);
+  }, 0);
+}
+
+function computeHumanmadeFifo() {
+  // 返回 { openShares, avgJpyCost, realizedPnl, openCostTwd, lots }
+  const lots = []; // { shares, jpyPrice, twdPerShare }
+  let realizedPnl = 0;
+
+  const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  sortedTrades.forEach(t => {
+    if (t.type === 'buy') {
+      lots.push({ shares: t.shares, jpyPrice: t.jpyPrice, twdPerShare: t.twdAmount / t.shares });
+    } else {
+      let remaining = t.shares;
+      const sellTwdPerShare = t.twdAmount / t.shares;
+      while (remaining > 0 && lots.length > 0) {
+        const lot = lots[0];
+        const matched = Math.min(remaining, lot.shares);
+        realizedPnl += matched * (sellTwdPerShare - lot.twdPerShare);
+        lot.shares -= matched;
+        remaining -= matched;
+        if (lot.shares <= 0) lots.shift();
+      }
+    }
+  });
+
+  const openShares = lots.reduce((sum, l) => sum + l.shares, 0);
+  const openJpyCost = lots.reduce((sum, l) => sum + l.shares * l.jpyPrice, 0);
+  const openTwdCost = lots.reduce((sum, l) => sum + l.shares * l.twdPerShare, 0);
+  const avgJpyCost = openShares > 0 ? openJpyCost / openShares : 0;
+
+  return { openShares, avgJpyCost, realizedPnl, openTwdCost, lots };
+}
+
+function computeHumanmadeStats() {
+  const fifo = computeHumanmadeFifo();
+  const totalFxPnl = humanmadeTrades.reduce((sum, t) => sum + calculateTradeFxPnl(t), 0);
+  const netCashflow = getNetCashflow();
+  const initialCapital = settings.humanmadeInitialCapital ?? DEFAULT_SETTINGS.humanmadeInitialCapital;
+
+  const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const lastTrade = sortedTrades[sortedTrades.length - 1];
+  const latestRate = lastTrade?.marketRate || lastTrade?.brokerRate || 0;
+
+  const positionValue = fifo.openShares * fifo.avgJpyCost * latestRate;
+  const unrealizedPnl = positionValue - fifo.openTwdCost;
+
+  // 总资产 = 初始本金 + 净入金 + 已实现盈亏 + 未实现盈亏
+  const totalAssets = initialCapital + netCashflow + fifo.realizedPnl + unrealizedPnl;
+
+  return {
+    totalAssets,
+    netCashflow,
+    realizedPnl: fifo.realizedPnl,
+    totalFxPnl,
+    positionShares: fifo.openShares,
+    positionValue,
+    unrealizedPnl,
+    initialCapital,
+    latestRate
+  };
+}
+
+function calculateHumanmadeEquitySeries() {
+  const initialCapital = settings.humanmadeInitialCapital ?? DEFAULT_SETTINGS.humanmadeInitialCapital;
+  const events = [];
+
+  // 现金流事件
+  humanmadeCashflows.forEach(c => {
+    events.push({ date: c.date, type: 'cashflow', amount: c.type === 'deposit' ? c.amount : -c.amount });
+  });
+
+  // 交易事件：将每笔 FX PnL 在交易日记入
+  const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  sortedTrades.forEach(t => {
+    events.push({ date: t.date, type: 'trade', amount: calculateTradeFxPnl(t) });
+  });
+
+  if (events.length === 0) return { series: [initialCapital], labels: ['初始'] };
+
+  // 未实现持仓：加到最新日期
+  const fifo = computeHumanmadeFifo();
+  if (fifo.openShares > 0) {
+    const lastTrade = sortedTrades[sortedTrades.length - 1];
+    const latestRate = lastTrade?.marketRate || lastTrade?.brokerRate || 0;
+    const positionValue = fifo.openShares * fifo.avgJpyCost * latestRate;
+    const unrealizedPnl = positionValue - fifo.openTwdCost;
+    const lastDate = events.map(e => e.date).sort().pop();
+    events.push({ date: lastDate, type: 'unrealized', amount: unrealizedPnl });
+  }
+
+  // 按日期排序并聚合
+  events.sort((a, b) => new Date(a.date) - new Date(b.date));
+  const dateMap = {};
+  events.forEach(e => {
+    if (!dateMap[e.date]) dateMap[e.date] = 0;
+    dateMap[e.date] += e.amount;
+  });
+
+  const labels = Object.keys(dateMap).sort((a, b) => new Date(a) - new Date(b));
+  const series = [];
+  let equity = initialCapital;
+  labels.forEach(date => {
+    equity += dateMap[date];
+    series.push(equity);
+  });
+
+  return { series: [initialCapital, ...series], labels: ['初始', ...labels.map(d => d.slice(5))] };
+}
+
+function getHumanmadeFxRateSeries() {
+  const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const labels = sortedTrades.map(t => t.date.slice(5));
+  const brokerRates = sortedTrades.map(t => t.brokerRate);
+  const marketRates = sortedTrades.map(t => t.marketRate);
+  return { labels, series: [{ name: '券商汇率', data: brokerRates, color: '#6366f1' }, { name: '市场汇率', data: marketRates, color: '#10b981' }] };
+}
+
+function getHumanmadeFxPnlSeries() {
+  const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let cumulative = 0;
+  const data = sortedTrades.map(t => {
+    cumulative += calculateTradeFxPnl(t);
+    return cumulative;
+  });
+  return { labels: sortedTrades.map(t => t.date.slice(5)), data };
+}
+
+// ==================== Humanmade CRUD ====================
+async function addHumanmadeTrade() {
+  const date = document.getElementById('hm-trade-date').value;
+  const type = document.getElementById('hm-trade-type').value;
+  const shares = parseInt(document.getElementById('hm-trade-shares').value, 10);
+  const jpyPrice = parseFloat(document.getElementById('hm-trade-jpy').value);
+  const twdAmount = parseFloat(document.getElementById('hm-trade-twd').value);
+  let brokerRate = parseFloat(document.getElementById('hm-trade-broker-rate').value);
+  let marketRate = parseFloat(document.getElementById('hm-trade-market-rate').value);
+  const notes = document.getElementById('hm-trade-notes').value.trim();
+
+  if (!date || isNaN(shares) || isNaN(jpyPrice) || isNaN(twdAmount)) {
+    alert('请填写必填项：日期、股数、JPY 单价、实际 TWD 金额');
+    return;
+  }
+  if (shares <= 0 || jpyPrice <= 0 || twdAmount <= 0) {
+    alert('股数、JPY 单价、实际 TWD 金额必须大于 0');
+    return;
+  }
+
+  // 自动计算券商汇率
+  const computedBrokerRate = calculateBrokerRate(shares, jpyPrice, twdAmount);
+  if (isNaN(brokerRate) || brokerRate <= 0) brokerRate = computedBrokerRate;
+
+  // 若未填市场汇率，尝试自动获取
+  let rateSource = 'manual';
+  if (isNaN(marketRate) || marketRate <= 0) {
+    const result = await getMarketRateWithFallback(date);
+    if (result.rate !== null) {
+      marketRate = result.rate;
+      rateSource = result.source === 'api' ? 'api' : 'manual';
+    }
+  }
+  if (!marketRate || marketRate <= 0) {
+    alert('未能获取市场汇率，请手动输入。');
+    return;
+  }
+
+  humanmadeTrades.push({
+    id: Date.now(),
+    date,
+    type,
+    symbol: HUMANMADE_SYMBOL,
+    shares,
+    jpyPrice,
+    twdAmount,
+    brokerRate,
+    marketRate,
+    rateSource,
+    notes
+  });
+  persistHumanmadeTrades();
+  renderHumanmade();
+
+  // 清空表单（保留日期与方向）
+  document.getElementById('hm-trade-shares').value = '';
+  document.getElementById('hm-trade-jpy').value = '';
+  document.getElementById('hm-trade-twd').value = '';
+  document.getElementById('hm-trade-broker-rate').value = '';
+  document.getElementById('hm-trade-market-rate').value = '';
+  document.getElementById('hm-trade-notes').value = '';
+
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+}
+
+function deleteHumanmadeTrade(idx) {
+  if (confirm('确定删除这条 Humanmade 交易记录吗？')) {
+    humanmadeTrades.splice(idx, 1);
+    persistHumanmadeTrades();
+    renderHumanmade();
+    if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+  }
+}
+
+function addHumanmadeCashflow() {
+  const date = document.getElementById('hm-cash-date').value;
+  const type = document.getElementById('hm-cash-type').value;
+  const amount = parseFloat(document.getElementById('hm-cash-amount').value);
+  const notes = document.getElementById('hm-cash-notes').value.trim();
+
+  if (!date || isNaN(amount) || amount <= 0) {
+    alert('请填写必填项：日期、金额（必须大于0）');
+    return;
+  }
+
+  humanmadeCashflows.push({
+    id: Date.now(),
+    date,
+    type,
+    amount,
+    notes
+  });
+  persistHumanmadeCashflows();
+  renderHumanmade();
+
+  document.getElementById('hm-cash-amount').value = '';
+  document.getElementById('hm-cash-notes').value = '';
+
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+}
+
+function deleteHumanmadeCashflow(idx) {
+  if (confirm('确定删除这条现金流记录吗？')) {
+    humanmadeCashflows.splice(idx, 1);
+    persistHumanmadeCashflows();
+    renderHumanmade();
+    if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+  }
+}
+
+function updateHumanmadeBrokerRate() {
+  const shares = parseFloat(document.getElementById('hm-trade-shares').value);
+  const jpyPrice = parseFloat(document.getElementById('hm-trade-jpy').value);
+  const twdAmount = parseFloat(document.getElementById('hm-trade-twd').value);
+  if (shares > 0 && jpyPrice > 0 && twdAmount > 0) {
+    document.getElementById('hm-trade-broker-rate').value = calculateBrokerRate(shares, jpyPrice, twdAmount).toFixed(6);
+  }
+}
+
+// ==================== Humanmade 渲染 ====================
+function renderHumanmade() {
+  const stats = computeHumanmadeStats();
+
+  const totalAssetsEl = document.getElementById('hm-stat-total-assets');
+  totalAssetsEl.textContent = formatMoney(stats.totalAssets).replace('¥', '');
+  totalAssetsEl.className = 'stat-value ' + (stats.totalAssets >= stats.initialCapital ? 'up' : 'down');
+
+  const netCashflowEl = document.getElementById('hm-stat-net-cashflow');
+  netCashflowEl.textContent = (stats.netCashflow >= 0 ? '+' : '') + formatMoney(stats.netCashflow).replace('¥', '');
+  netCashflowEl.className = 'stat-value ' + (stats.netCashflow >= 0 ? 'up' : 'down');
+
+  const realizedEl = document.getElementById('hm-stat-realized-pnl');
+  realizedEl.textContent = (stats.realizedPnl >= 0 ? '+' : '') + formatMoney(stats.realizedPnl).replace('¥', '');
+  realizedEl.className = 'stat-value ' + (stats.realizedPnl >= 0 ? 'up' : 'down');
+
+  const fxPnlEl = document.getElementById('hm-stat-fx-pnl');
+  fxPnlEl.textContent = (stats.totalFxPnl >= 0 ? '+' : '') + formatMoney(stats.totalFxPnl).replace('¥', '');
+  fxPnlEl.className = 'stat-value ' + (stats.totalFxPnl >= 0 ? 'up' : 'down');
+
+  document.getElementById('hm-stat-position-shares').textContent = stats.positionShares;
+  document.getElementById('hm-stat-position-value').textContent = formatMoney(stats.positionValue).replace('¥', '');
+
+  const infoEl = document.getElementById('hm-last-active-rate-info');
+  if (infoEl) {
+    infoEl.textContent = humanmadeTrades.length > 0 ? `最新汇率: ${stats.latestRate.toFixed(6)}` : '';
+  }
+
+  renderHumanmadeTrades();
+  renderHumanmadeCashflows();
+  renderFxRateChart();
+  renderFxPnlChart();
+  renderHumanmadeEquityChart();
+}
+
+function renderHumanmadeTrades() {
+  const tbody = document.getElementById('hm-trade-list');
+  tbody.innerHTML = '';
+  if (humanmadeTrades.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#94a3b8;">暂无交易记录</td></tr>';
+    return;
+  }
+  [...humanmadeTrades].map((t, i) => ({ t, i })).sort((a, b) => new Date(b.t.date) - new Date(a.t.date)).forEach(({ t, i }) => {
+    const fxPnl = calculateTradeFxPnl(t);
+    const fxPnlStr = (fxPnl >= 0 ? '+' : '') + formatMoney(fxPnl).replace('¥', '');
+    const fxPnlClass = fxPnl >= 0 ? 'pos-amount' : 'neg-amount';
+    const typeStr = t.type === 'buy' ? '<span class="tag tag-open">买入</span>' : '<span class="tag tag-win">卖出</span>';
+    const rateSourceBadge = t.rateSource === 'api' ? '<span class="price-source-badge api">API</span>' : '<span class="price-source-badge manual">手动</span>';
+
+    tbody.innerHTML += `<tr>
+      <td>${t.date}</td>
+      <td>${typeStr}</td>
+      <td>${t.shares}</td>
+      <td>${t.jpyPrice.toFixed(2)}</td>
+      <td>${formatMoney(t.twdAmount).replace('¥', '')}</td>
+      <td>${t.brokerRate.toFixed(6)}</td>
+      <td>${t.marketRate.toFixed(6)}</td>
+      <td class="${fxPnlClass}">${fxPnlStr}</td>
+      <td>${rateSourceBadge}</td>
+      <td>${t.notes || '-'}</td>
+      <td><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteHumanmadeTrade(${i})">删除</button></td>
+    </tr>`;
+  });
+}
+
+function renderHumanmadeCashflows() {
+  const tbody = document.getElementById('hm-cashflow-list');
+  tbody.innerHTML = '';
+  if (humanmadeCashflows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">暂无现金流记录</td></tr>';
+    return;
+  }
+  [...humanmadeCashflows].map((c, i) => ({ c, i })).sort((a, b) => new Date(b.c.date) - new Date(a.c.date)).forEach(({ c, i }) => {
+    const typeStr = c.type === 'deposit' ? '<span class="tag tag-win">汇入</span>' : '<span class="tag tag-loss">汇出</span>';
+    const amountClass = c.type === 'deposit' ? 'pos-amount' : 'neg-amount';
+    const sign = c.type === 'deposit' ? '+' : '-';
+    tbody.innerHTML += `<tr>
+      <td>${c.date}</td>
+      <td>${typeStr}</td>
+      <td class="${amountClass}">${sign}${formatMoney(c.amount).replace('¥', '')}</td>
+      <td>${c.notes || '-'}</td>
+      <td><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteHumanmadeCashflow(${i})">删除</button></td>
+    </tr>`;
+  });
+}
+
+function renderMultiLineChart(canvasId, seriesList, labels) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const hasData = seriesList.some(s => s.data && s.data.length > 0);
+  if (!hasData || labels.length < 2) {
+    canvas.style.display = 'none';
+    return;
+  }
+  canvas.style.display = 'block';
+
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const padding = 40;
+  const chartW = w - padding * 2;
+  const chartH = h - padding * 2;
+
+  const allValues = seriesList.flatMap(s => s.data);
+  let minV = Math.min(...allValues), maxV = Math.max(...allValues);
+  if (minV === maxV) { minV -= Math.abs(minV) * 0.1 + 0.001; maxV += Math.abs(maxV) * 0.1 + 0.001; }
+  const range = maxV - minV || 1;
+
+  // 网格
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + chartH * i / 4;
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(w - padding, y);
+    ctx.stroke();
+  }
+
+  // 绘制每条线
+  seriesList.forEach(series => {
+    ctx.strokeStyle = series.color || '#6366f1';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    series.data.forEach((v, i) => {
+      const x = padding + chartW * i / (labels.length - 1);
+      const y = padding + chartH * (1 - (v - minV) / range);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+
+  // Y轴标签
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(maxV.toFixed(6), padding - 6, padding + 4);
+  ctx.fillText(minV.toFixed(6), padding - 6, padding + chartH + 4);
+
+  // X轴标签
+  ctx.textAlign = 'center';
+  const maxLabels = Math.max(3, Math.floor(chartW / 52));
+  const step = Math.max(1, Math.floor((labels.length - 1) / (maxLabels - 1)));
+  for (let i = 0; i < labels.length; i += step) {
+    const x = padding + chartW * i / (labels.length - 1);
+    ctx.fillText(labels[i], x, h - 10);
+  }
+  if ((labels.length - 1) % step !== 0) {
+    const x = padding + chartW;
+    ctx.fillText(labels[labels.length - 1], x, h - 10);
+  }
+
+  // 图例
+  let legendX = padding;
+  seriesList.forEach(series => {
+    ctx.fillStyle = series.color || '#6366f1';
+    ctx.fillRect(legendX, 8, 12, 4);
+    ctx.fillStyle = '#475569';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(series.name, legendX + 16, 12);
+    legendX += ctx.measureText(series.name).width + 36;
+  });
+}
+
+function renderFxRateChart() {
+  const data = getHumanmadeFxRateSeries();
+  if (data.labels.length < 2) {
+    const canvas = document.getElementById('hm-fx-rate-chart');
+    if (canvas) canvas.style.display = 'none';
+    return;
+  }
+  renderMultiLineChart('hm-fx-rate-chart', data.series, data.labels);
+}
+
+function renderFxPnlChart() {
+  const { labels, data } = getHumanmadeFxPnlSeries();
+  const series = [{ name: '累计 FX PnL', data, color: '#f59e0b' }];
+  if (labels.length < 2) {
+    const canvas = document.getElementById('hm-fx-pnl-chart');
+    if (canvas) canvas.style.display = 'none';
+    return;
+  }
+  renderMultiLineChart('hm-fx-pnl-chart', series, labels);
+}
+
+function renderHumanmadeEquityChart() {
+  const { series, labels } = calculateHumanmadeEquitySeries();
+  const canvas = document.getElementById('hm-equity-chart');
+  if (!canvas) return;
+  if (series.length < 2) {
+    canvas.style.display = 'none';
+    return;
+  }
+  canvas.style.display = 'block';
+  renderEquityChart(series, labels, 'hm-equity-chart');
+}
+
+async function refreshSinglePrice(symbol, btnId) {
+  if (btnId) setLoading(btnId, true);
+  try {
+    const price = await fetchPrice(symbol);
+    positionPrices[symbol] = price;
+    persistPositionPrices();
+    renderAll();
+    log(`✅ ${symbol} 价格更新: ${price.toFixed(2)}`, 'ok');
+    return price;
+  } catch (e) {
+    log(`✖ ${symbol} 刷新失败: ${e.message}`, 'err');
+    alert(`${symbol} 价格获取失败: ${e.message}\n请手动输入当前价格。`);
+    throw e;
+  } finally {
+    if (btnId) setLoading(btnId, false);
+  }
+}
+
+async function refreshAllPositionPrices() {
+  const openTrades = trades.filter(t => !t.exit);
+  if (openTrades.length === 0) { log('ℹ️ 没有持仓中的交易', 'info'); return; }
+  if (settings.priceSource === 'manual') { log('ℹ️ 当前为手动模式，请逐笔输入当前价格', 'info'); return; }
+  log(`🔄 开始刷新 ${openTrades.length} 笔持仓价格...`, 'info');
+  for (const t of openTrades) {
+    try {
+      await refreshSinglePrice(t.symbol);
+      // API 限流保护
+      if (settings.priceSource === 'alphavantage') await new Promise(r => setTimeout(r, 13000));
+      else await new Promise(r => setTimeout(r, 300));
+    } catch (e) { /* 单条失败继续 */ }
+  }
+  log('🔄 刷新完成', 'info');
+}
+
+function onManualPriceChange(symbol, value) {
+  const price = parseFloat(value);
+  if (!isNaN(price) && price > 0) {
+    positionPrices[symbol] = price;
+    persistPositionPrices();
+    renderAll();
+  }
+}
+function daysBetween(d1, d2) {
+  if (!d1 || !d2) return '-';
+  const a = new Date(d1), b = new Date(d2);
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+function formatMoney(n) {
+  return '¥' + n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// ==================== 设置面板 ====================
+function initSettingsUI() {
+  document.getElementById('cfg-capital').value = settings.initialCapital;
+  document.getElementById('hm-initial-capital').value = settings.humanmadeInitialCapital ?? DEFAULT_SETTINGS.humanmadeInitialCapital;
+  document.getElementById('cfg-risk').value = settings.riskPerTrade;
+  document.getElementById('cfg-tolerance').value = settings.rTolerance || 10;
+  document.getElementById('cfg-use-norm-r').checked = settings.useNormalizedR || false;
+  document.getElementById('cfg-price-source').value = settings.priceSource || 'manual';
+  document.getElementById('cfg-price-key').value = settings.priceApiKey || '';
+  document.getElementById('cfg-auto-refresh').checked = settings.autoRefresh || false;
+  document.getElementById('cfg-auto-pull').checked = settings.autoPull || false;
+  document.getElementById('cfg-auto-push').checked = settings.autoPush || false;
+  onPriceSourceChange();
+
+  const fieldContainer = document.getElementById('field-checkboxes');
+  fieldContainer.innerHTML = '';
+  FIELD_DEFS.forEach(f => {
+    const checked = settings.visibleFields.includes(f.key) ? 'checked' : '';
+    const disabled = f.required ? 'disabled' : '';
+    fieldContainer.innerHTML += `<label class="checkbox-item"><input type="checkbox" value="${f.key}" ${checked} ${disabled} onchange="updateFieldVisibility()"> ${f.label} ${f.required ? '(必填)' : ''}</label>`;
+  });
+  const dashContainer = document.getElementById('dashboard-checkboxes');
+  dashContainer.innerHTML = '';
+  DASHBOARD_DEFS.forEach(d => {
+    const checked = settings.visibleDashboards.includes(d.key) ? 'checked' : '';
+    dashContainer.innerHTML += `<label class="checkbox-item"><input type="checkbox" value="${d.key}" ${checked} onchange="updateDashboardVisibility()"> ${d.label}</label>`;
+  });
+  updateFieldVisibility();
+  updateDashboardVisibility();
+}
+
+function updateFieldVisibility() {
+  const checked = Array.from(document.querySelectorAll('#field-checkboxes input:checked')).map(cb => cb.value);
+  settings.visibleFields = checked;
+  FIELD_DEFS.forEach(f => {
+    const el = document.querySelector(`.field-${f.key}`);
+    if (el) el.classList.toggle('hidden', !checked.includes(f.key));
+  });
+}
+function updateDashboardVisibility() {
+  const checked = Array.from(document.querySelectorAll('#dashboard-checkboxes input:checked')).map(cb => cb.value);
+  settings.visibleDashboards = checked;
+  DASHBOARD_DEFS.forEach(d => {
+    const el = document.querySelector(`.dashboard-${d.key}`);
+    if (el) el.classList.toggle('hidden', !checked.includes(d.key));
+  });
+}
+
+// 修复：改名 saveSettingsForm，内部调用 persistSettings，避免无限递归
+function saveSettingsForm() {
+  settings.initialCapital = parseFloat(document.getElementById('cfg-capital').value) || 100000;
+  settings.riskPerTrade = parseFloat(document.getElementById('cfg-risk').value) || 1;
+  settings.rTolerance = parseFloat(document.getElementById('cfg-tolerance').value) || 10;
+  settings.useNormalizedR = document.getElementById('cfg-use-norm-r').checked;
+  settings.priceSource = document.getElementById('cfg-price-source').value;
+  settings.priceApiKey = document.getElementById('cfg-price-key').value.trim();
+  settings.autoRefresh = document.getElementById('cfg-auto-refresh').checked;
+  settings.autoPull = document.getElementById('cfg-auto-pull').checked;
+  settings.autoPush = document.getElementById('cfg-auto-push').checked;
+  updateFieldVisibility();
+  updateDashboardVisibility();
+  persistSettings();
+  renderAll();
+  alert('设置已保存');
+}
+
+function toggleAutoSync() {
+  settings.autoPull = document.getElementById('cfg-auto-pull').checked;
+  settings.autoPush = document.getElementById('cfg-auto-push').checked;
+  persistSettings();
+}
+
+function toggleNormalizedR() {
+  settings.useNormalizedR = document.getElementById('cfg-use-norm-r').checked;
+  persistSettings();
+  renderAll();
+}
+
+function onPriceSourceChange() {
+  const source = document.getElementById('cfg-price-source').value;
+  const keySection = document.getElementById('cfg-price-key-section');
+  const keyHint = document.getElementById('price-key-hint');
+  if (source === 'alphavantage') {
+    keySection.style.display = 'block';
+    keyHint.textContent = 'Alpha Vantage 免费版限 5次/分钟，500次/天';
+  } else if (source === 'finnhub') {
+    keySection.style.display = 'block';
+    keyHint.textContent = 'Finnhub 免费版限 60次/分钟';
+  } else {
+    keySection.style.display = 'none';
+  }
+  savePriceSettings();
+}
+
+function savePriceSettings() {
+  settings.priceSource = document.getElementById('cfg-price-source').value;
+  settings.priceApiKey = document.getElementById('cfg-price-key').value.trim();
+  persistSettings();
+  const badgeEl = document.getElementById('price-source-badge');
+  if (badgeEl) {
+    badgeEl.textContent = settings.priceSource === 'manual' ? '手动模式' : 'API模式';
+    badgeEl.className = 'price-source-badge ' + (settings.priceSource === 'manual' ? 'manual' : 'api');
+  }
+}
+
+function toggleAutoRefresh() {
+  settings.autoRefresh = document.getElementById('cfg-auto-refresh').checked;
+  persistSettings();
+}
+
+function resetSettings() {
+  settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  persistSettings();
+  initSettingsUI();
+  renderAll();
+}
+function saveHumanmadeInitialCapital() {
+  settings.humanmadeInitialCapital = parseFloat(document.getElementById('hm-initial-capital').value) || DEFAULT_SETTINGS.humanmadeInitialCapital;
+  persistSettings();
+  renderHumanmade();
+  alert('Humanmade 初始本金已保存');
+}
+
+// ==================== 统计计算 ====================
+function computeStats(symbolFilter = null) {
+  let tradeList = trades;
+  if (symbolFilter) {
+    const normalizedFilter = symbolFilter.toString().toLowerCase().trim();
+    tradeList = trades.filter(t => t.symbol && t.symbol.toString().toLowerCase().trim() === normalizedFilter);
+  }
+  const closed = tradeList.filter(t => t.exit !== null && t.exit !== undefined && t.exit !== '');
+  const openTrades = tradeList.filter(t => !t.exit);
+  const total = closed.length;
+
+  // 已平仓统计
+  let winRate = 0, rr = 0, expectancy = 0, avgR = 0, maxDD = 0, consecStr = '-', sharpe = 0, totalPnl = 0, equity = symbolFilter ? [0] : [settings.initialCapital];
+  if (total > 0) {
+    const rawRs = closed.map(t => calculateR(parseFloat(t.entry), parseFloat(t.stop), parseFloat(t.exit), t.direction));
+    const rs = settings.useNormalizedR ? rawRs.map(r => normalizeR(r, settings.rTolerance)) : rawRs;
+    const wins = rs.filter(r => r > 0);
+    const losses = rs.filter(r => r <= 0);
+    winRate = wins.length / total;
+    const avgWinR = wins.length > 0 ? wins.reduce((a,b)=>a+b,0)/wins.length : 0;
+    const avgLossR = losses.length > 0 ? Math.abs(losses.reduce((a,b)=>a+b,0)/losses.length) : 0;
+    rr = avgLossR > 0 ? avgWinR / avgLossR : (avgWinR > 0 ? Infinity : 0);
+    expectancy = winRate * avgWinR - (1 - winRate) * avgLossR;
+    avgR = rs.reduce((a,b)=>a+b,0) / total;
+
+    let peak = symbolFilter ? 0 : settings.initialCapital;
+    closed.forEach(t => {
+      const pnl = calculateActualPnl(parseFloat(t.entry), parseFloat(t.exit), t.direction, parseFloat(t.shares));
+      totalPnl += pnl;
+      const current = symbolFilter ? totalPnl : (settings.initialCapital + totalPnl);
+      equity.push(current);
+      if (current > peak) peak = current;
+      const dd = peak > 0 ? (peak - current) / peak : 0;
+      if (dd > maxDD) maxDD = dd;
+    });
+
+    let consec = 0;
+    for (let i = rs.length - 1; i >= 0; i--) {
+      if (rs[i] > 0 && consec >= 0) consec++;
+      else if (rs[i] <= 0 && consec <= 0) consec--;
+      else break;
+    }
+    consecStr = consec > 0 ? `连赢 ${consec}` : consec < 0 ? `连输 ${Math.abs(consec)}` : '-';
+
+    const meanR = avgR;
+    const variance = rs.reduce((sum, r) => sum + (r - meanR)**2, 0) / total;
+    sharpe = variance > 0 ? meanR / Math.sqrt(variance) : 0;
+  }
+
+  // 持仓浮动盈亏
+  let floatingPnl = 0, positionValue = 0;
+  openTrades.forEach(t => {
+    const entry = parseFloat(t.entry), shares = parseFloat(t.shares);
+    const price = positionPrices[t.symbol];
+    positionValue += entry * shares; // 持仓成本
+    if (price) {
+      floatingPnl += calculateFloatingPnl(entry, price, t.direction, shares);
+    }
+  });
+
+  return { total, winRate, rr, expectancy, avgR, maxDD, consec: consecStr, sharpe, totalPnl, equity, floatingPnl, positionValue, openCount: openTrades.length };
+}
+
+// ==================== 渲染 ====================
+function renderAll() {
+  const s = computeStats();
+  const totalEquity = settings.initialCapital + s.totalPnl + s.floatingPnl;
+  document.getElementById('stat-capital').textContent = formatMoney(totalEquity);
+  document.getElementById('stat-total-pnl').textContent = (s.totalPnl >= 0 ? '+' : '') + formatMoney(s.totalPnl).replace('¥','');
+  document.getElementById('stat-total-pnl').className = 'stat-value ' + (s.totalPnl >= 0 ? 'up' : 'down');
+  document.getElementById('stat-total').textContent = s.total;
+  document.getElementById('stat-winrate').textContent = (s.winRate * 100).toFixed(1) + '%';
+  document.getElementById('stat-rr').textContent = s.rr === Infinity ? '∞' : s.rr.toFixed(2);
+  document.getElementById('stat-expectancy').textContent = s.expectancy.toFixed(2);
+  document.getElementById('stat-avg-r').textContent = s.avgR.toFixed(2);
+  document.getElementById('stat-maxdd').textContent = (s.maxDD * 100).toFixed(1) + '%';
+  document.getElementById('stat-consec').textContent = s.consec;
+  document.getElementById('stat-sharpe').textContent = s.sharpe.toFixed(2);
+  // 持仓浮动盈亏显示（如果有持仓）
+  const floatEl = document.getElementById('stat-floating');
+  if (floatEl) {
+    floatEl.textContent = (s.floatingPnl >= 0 ? '+' : '') + formatMoney(s.floatingPnl).replace('¥','');
+    floatEl.className = 'stat-value ' + (s.floatingPnl >= 0 ? 'up' : 'down');
+  }
+  const posEl = document.getElementById('stat-positions');
+  if (posEl) posEl.textContent = s.openCount;
+  const badgeEl = document.getElementById('price-source-badge');
+  if (badgeEl) {
+    badgeEl.textContent = settings.priceSource === 'manual' ? '手动模式' : 'API模式';
+    badgeEl.className = 'price-source-badge ' + (settings.priceSource === 'manual' ? 'manual' : 'api');
+  }
+  renderTrades();
+  const equitySeries = getEquitySeries();
+  renderEquityChart(equitySeries.series, equitySeries.labels);
+  renderRDistChart();
+  renderMonthlySummary();
+  renderAdvice(s);
+}
+
+function renderTrades() {
+  const tbody = document.getElementById('trade-list');
+  tbody.innerHTML = '';
+  [...trades].reverse().forEach((t, idx) => {
+    const realIdx = trades.length - 1 - idx;
+    const entry = parseFloat(t.entry), stop = parseFloat(t.stop), exit = t.exit ? parseFloat(t.exit) : null;
+    const shares = parseFloat(t.shares) || 0;
+    const isOpen = exit === null;
+    const currentPrice = isOpen ? (positionPrices[t.symbol] || '') : '';
+
+    // 已平仓的 R 和盈亏
+    const rawR = exit !== null ? calculateR(entry, stop, exit, t.direction) : null;
+    const displayR = rawR !== null ? getDisplayR(rawR) : null;
+    const rStr = rawR !== null ? (displayR.isNormalized ? `~${displayR.value}R` : `${displayR.value}R`) : '-';
+    const rTitle = rawR !== null && displayR.isNormalized ? `精确值: ${rawR.toFixed(2)}R (宽容度±${settings.rTolerance}%)` : '';
+    const pnl = exit !== null ? calculateActualPnl(entry, exit, t.direction, shares) : null;
+    const isWin = exit !== null && (displayR ? displayR.value : rawR) > 0;
+    const isLoss = exit !== null && (displayR ? displayR.value : rawR) <= 0;
+    const pnlStr = pnl !== null ? (pnl >= 0 ? '+' : '') + formatMoney(pnl).replace('¥','') : '-';
+    const pnlClass = pnl !== null ? (pnl >= 0 ? 'pos-amount' : 'neg-amount') : '';
+
+    // 持仓的浮动盈亏
+    let floatRStr = '-', floatPnlStr = '-', floatPnlClass = '';
+    if (isOpen && currentPrice) {
+      const floatR = calculateFloatingR(entry, stop, currentPrice, t.direction);
+      const floatPnl = calculateFloatingPnl(entry, currentPrice, t.direction, shares);
+      const floatDisplayR = getDisplayR(floatR);
+      floatRStr = floatDisplayR.isNormalized ? `~${floatDisplayR.value}R` : `${floatDisplayR.value.toFixed(2)}R`;
+      floatPnlStr = (floatPnl >= 0 ? '+' : '') + formatMoney(floatPnl).replace('¥','');
+      floatPnlClass = floatPnl >= 0 ? 'up' : 'down';
+    }
+
+    const row = document.createElement('tr');
+    if (isOpen) row.classList.add('position-row');
+
+    // 当前价列
+    const priceCell = isOpen
+      ? `<input type="number" class="current-price-input" value="${currentPrice}" step="0.01" placeholder="价格" onchange="onManualPriceChange('${t.symbol}', this.value)" title="手动输入当前价格"> <button class="refresh-btn" id="refresh-btn-${realIdx}" onclick="refreshSinglePrice('${t.symbol}', 'refresh-btn-${realIdx}')" title="从API刷新价格"><span class="spinner"></span>🔄</button>`
+      : '-';
+
+    row.innerHTML = `<td><strong>${t.symbol}</strong></td><td>${t.direction === 'long' ? '做多' : '做空'}</td><td>${entry.toFixed(2)}</td><td>${stop.toFixed(2)}</td><td>${exit !== null ? exit.toFixed(2) : '<span class="tag tag-open">持仓中</span>'}</td><td>${shares}</td><td>${priceCell}</td><td class="float-pnl ${floatPnlClass}">${floatPnlStr}<br><small style="font-weight:400;color:#64748b;">${floatRStr}</small></td><td title="${rTitle}"><strong>${rStr}</strong></td><td class="${pnlClass}">${pnlStr}</td><td>${isWin ? '<span class="tag tag-win">盈利</span>' : isLoss ? '<span class="tag tag-loss">亏损</span>' : '<span class="tag tag-open">-</span>'}</td><td>${daysBetween(t.entryDate, t.exitDate)}</td><td><button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; margin-right: 4px;" onclick="openEditModal(${realIdx})">编辑</button><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteTrade(${realIdx})">删除</button></td>`;
+    tbody.appendChild(row);
+  });
+}
+
+// ==================== 图表绘制 ====================
+function renderEquityChart(equity, labels, canvasId = 'equity-chart') {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || equity.length < 2) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  ctx.clearRect(0, 0, w, h);
+  const padding = 40, chartW = w - padding * 2, chartH = h - padding * 2;
+  const minV = Math.min(...equity), maxV = Math.max(...equity);
+  const range = maxV - minV || 1;
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const y = padding + chartH * i / 4; ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(w - padding, y); ctx.stroke(); }
+  ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 2; ctx.beginPath();
+  equity.forEach((v, i) => { const x = padding + chartW * i / (equity.length - 1); const y = padding + chartH * (1 - (v - minV) / range); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+  ctx.stroke();
+  ctx.fillStyle = '#64748b'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText(formatMoney(maxV), padding - 6, padding + 4);
+  ctx.fillText(formatMoney(minV), padding - 6, padding + chartH + 4);
+  ctx.textAlign = 'center';
+  if (labels && labels.length === equity.length) {
+    // 按画布宽度智能采样显示日期标签，避免拥挤
+    const maxLabels = Math.max(3, Math.floor(chartW / 52));
+    const step = Math.max(1, Math.floor((labels.length - 1) / (maxLabels - 1)));
+    for (let i = 0; i < labels.length; i += step) {
+      const x = padding + chartW * i / (equity.length - 1);
+      ctx.fillText(labels[i], x, h - 10);
+    }
+    if ((labels.length - 1) % step !== 0) {
+      const x = padding + chartW;
+      ctx.fillText(labels[labels.length - 1], x, h - 10);
+    }
+  } else {
+    ctx.fillText('开始', padding, h - 10); ctx.fillText('最新', w - padding, h - 10);
+  }
+}
+function renderRDistChart() {
+  const canvas = document.getElementById('r-dist-chart');
+  if (!canvas) return;
+  const closed = trades.filter(t => t.exit !== null && t.exit !== '');
+  if (closed.length === 0) { canvas.style.display = 'none'; return; }
+  canvas.style.display = 'block';
+  const rawRs = closed.map(t => calculateR(parseFloat(t.entry), parseFloat(t.stop), parseFloat(t.exit), t.direction));
+  const rs = settings.useNormalizedR ? rawRs.map(r => normalizeR(r, settings.rTolerance)) : rawRs;
+  const buckets = { '≤-2': 0, '-2~-1': 0, '-1~0': 0, '0~1': 0, '1~2': 0, '2~3': 0, '>3': 0 };
+  rs.forEach(r => { if (r <= -2) buckets['≤-2']++; else if (r <= -1) buckets['-2~-1']++; else if (r <= 0) buckets['-1~0']++; else if (r <= 1) buckets['0~1']++; else if (r <= 2) buckets['1~2']++; else if (r <= 3) buckets['2~3']++; else buckets['>3']++; });
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  ctx.clearRect(0, 0, w, h);
+  const labels = Object.keys(buckets), values = Object.values(buckets);
+  const maxVal = Math.max(...values) || 1;
+  const barW = (w - 60) / labels.length;
+  const colors = ['#ef4444','#f87171','#fca5a5','#86efac','#4ade80','#22c55e','#16a34a'];
+  labels.forEach((label, i) => {
+    const bh = (values[i] / maxVal) * (h - 40);
+    const x = 30 + i * barW + barW * 0.15;
+    const y = h - 30 - bh;
+    ctx.fillStyle = colors[i]; ctx.fillRect(x, y, barW * 0.7, bh);
+    ctx.fillStyle = '#475569'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(label, x + barW * 0.35, h - 12);
+    if (values[i] > 0) ctx.fillText(values[i], x + barW * 0.35, y - 4);
+  });
+}
+function renderMonthlySummary() {
+  const tbody = document.querySelector('#monthly-table tbody');
+  tbody.innerHTML = '';
+  const closed = trades.filter(t => t.exit && t.exitDate);
+  if (closed.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">暂无数据</td></tr>'; return; }
+  const months = {};
+  closed.forEach(t => {
+    const month = t.exitDate.slice(0, 7);
+    if (!months[month]) months[month] = { count: 0, wins: 0, pnl: 0, rSum: 0 };
+    const rawR = calculateR(parseFloat(t.entry), parseFloat(t.stop), parseFloat(t.exit), t.direction);
+    const r = settings.useNormalizedR ? normalizeR(rawR, settings.rTolerance) : rawR;
+    const pnl = calculateActualPnl(parseFloat(t.entry), parseFloat(t.exit), t.direction, parseFloat(t.shares));
+    months[month].count++; if (r > 0) months[month].wins++;
+    months[month].pnl += pnl; months[month].rSum += r;
+  });
+  Object.keys(months).sort().reverse().forEach(m => {
+    const d = months[m];
+    const wr = d.count > 0 ? (d.wins / d.count * 100).toFixed(0) + '%' : '0%';
+    const avgR = d.count > 0 ? (d.rSum / d.count).toFixed(2) : '0';
+    const pnlStr = (d.pnl >= 0 ? '+' : '') + formatMoney(d.pnl).replace('¥','');
+    const pnlClass = d.pnl >= 0 ? 'pos-amount' : 'neg-amount';
+    tbody.innerHTML += `<tr><td>${m}</td><td>${d.count}</td><td>${wr}</td><td class="${pnlClass}">${pnlStr}</td><td>${avgR}R</td></tr>`;
+  });
+}
+function renderAdvice(s) {
+  const list = document.getElementById('dynamic-advice');
+  const items = [];
+  if (s.total === 0) { list.innerHTML = '<li>开始记录交易后，这里会生成个性化建议</li>'; return; }
+  if (s.expectancy < 0.5) items.push('<strong>期望值偏低：</strong>建议检查止损执行是否到位，或提高止盈目标到至少 2R-3R。');
+  if (s.winRate < 0.35) items.push('<strong>胜率过低：</strong>可能是入场信号不够严格，建议增加过滤条件（如大盘趋势、板块强度）。');
+  if (s.maxDD > 0.15) items.push('<strong>最大回撤超过 15%：</strong>单笔风险比例可能过高，建议降至 0.5%-1%。');
+  if (s.rr < 1.5) items.push('<strong>盈亏比不足 1.5：</strong>让利润奔跑做得不够，尝试移动止损或分批止盈。');
+  if (s.sharpe < 0.5 && s.total > 10) items.push('<strong>夏普比率偏低：</strong>收益波动过大，检查是否有单笔超大亏损（没有止损）。');
+  if (items.length === 0) items.push('当前系统表现健康，继续保持纪律。建议增加情绪评分字段，观察心态对胜率的影响。');
+  list.innerHTML = items.map(i => `<li>${i}</li>`).join('');
+}
+
+// ==================== 表单交互 ====================
+function calculateRLevels() {
+  const entry = parseFloat(document.getElementById('input-entry').value);
+  const stop = parseFloat(document.getElementById('input-stop').value);
+  const direction = document.getElementById('input-direction').value;
+  const shares = parseFloat(document.getElementById('input-shares').value);
+  const container = document.getElementById('r-levels');
+  const sugBox = document.getElementById('position-suggestion');
+  const sugText = document.getElementById('suggestion-text');
+  const sharesHint = document.getElementById('shares-hint');
+
+  if (!entry || !stop || entry === stop) {
+    container.innerHTML = '<span style="color: #94a3b8; font-size: 13px;">输入买入价和止损价后自动计算...</span>';
+    sugBox.style.display = 'none'; sharesHint.textContent = ''; return;
+  }
+
+  const riskPerShare = Math.abs(entry - stop);
+  const levels = [1, 2, 3, 5, 10];
+  const colors = ['r-1', 'r-2', 'r-3', 'r-5', 'r-10'];
+  let html = '';
+  levels.forEach((r, i) => { const target = direction === 'long' ? entry + riskPerShare * r : entry - riskPerShare * r; html += `<span class="r-level ${colors[i]}">${r}R = ${target.toFixed(2)}</span>`; });
+  html += `<div style="margin-top: 10px; font-size: 12px; color: #64748b;">每股风险: ${riskPerShare.toFixed(2)} | 建议至少拿到 2R-3R</div>`;
+  container.innerHTML = html;
+
+  const riskAmount = getRiskAmount();
+  const suggestedShares = Math.floor(riskAmount / riskPerShare);
+  sharesHint.textContent = `建议股数: ~${suggestedShares} (基于 ${settings.riskPerTrade}% 风险 = ${formatMoney(riskAmount)})`;
+
+  if (shares && shares > 0) {
+    const actualRisk = riskPerShare * shares;
+    const currentCapital = settings.initialCapital + computeStats().totalPnl;
+    const actualRiskPct = (actualRisk / currentCapital * 100).toFixed(2);
+    sugBox.style.display = 'block';
+    let riskComment = actualRisk > riskAmount * 1.2 ? '⚠️ 当前仓位风险偏高，建议减仓' : actualRisk < riskAmount * 0.5 ? 'ℹ️ 当前仓位风险偏低，可适当加仓' : '✅ 仓位风险比例合理';
+    sugText.innerHTML = `设定单笔风险: ${formatMoney(riskAmount)}<br>实际承担风险: ${formatMoney(actualRisk)} (${actualRiskPct}%)<br>${riskComment}`;
+  } else {
+    sugBox.style.display = 'none';
+  }
+}
+
+function addTrade() {
+  const symbol = document.getElementById('input-symbol').value.trim().toUpperCase();
+  const direction = document.getElementById('input-direction').value;
+  const entry = parseFloat(document.getElementById('input-entry').value);
+  const stop = parseFloat(document.getElementById('input-stop').value);
+  const shares = parseFloat(document.getElementById('input-shares').value);
+  const entryDate = document.getElementById('input-entry-date').value;
+  const exit = document.getElementById('input-exit').value;
+  const exitDate = document.getElementById('input-exit-date').value;
+  const strategy = document.getElementById('input-strategy').value;
+  const timeframe = document.getElementById('input-timeframe').value;
+  const mood = document.getElementById('input-mood').value;
+  const planned = document.getElementById('input-planned').value;
+  const notes = document.getElementById('input-notes').value;
+
+  if (!symbol || !entry || !stop || !shares || !entryDate) { alert('请填写必填项：股票代码、买入价、止损价、股数、买入日期'); return; }
+  if (direction === 'long' && stop >= entry) { alert('做多时止损价必须低于买入价'); return; }
+  if (direction === 'short' && stop <= entry) { alert('做空时止损价必须高于买入价'); return; }
+
+  trades.push({ symbol, direction, entry, stop, shares, entryDate, exit: exit || null, exitDate: exitDate || null, strategy, timeframe, mood, plannedTarget: planned || null, notes, id: Date.now() });
+  persistTrades(); renderAll();
+
+  // 自动推送
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) {
+    pushToGitHub();
+  }
+
+  document.getElementById('input-symbol').value = ''; document.getElementById('input-entry').value = ''; document.getElementById('input-stop').value = ''; document.getElementById('input-shares').value = ''; document.getElementById('input-exit').value = ''; document.getElementById('input-entry-date').value = ''; document.getElementById('input-exit-date').value = ''; document.getElementById('input-strategy').value = ''; document.getElementById('input-timeframe').value = ''; document.getElementById('input-mood').value = ''; document.getElementById('input-planned').value = ''; document.getElementById('input-notes').value = '';
+  calculateRLevels();
+}
+function deleteTrade(idx) {
+  if (confirm('确定删除这条记录吗？')) {
+    trades.splice(idx, 1); persistTrades(); renderAll();
+    if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+  }
+}
+
+// ==================== 编辑交易 ====================
+let editingIndex = null;
+
+function openEditModal(idx) {
+  editingIndex = idx;
+  const t = trades[idx];
+  document.getElementById('edit-symbol').value = t.symbol || '';
+  document.getElementById('edit-direction').value = t.direction || 'long';
+  document.getElementById('edit-entry').value = t.entry || '';
+  document.getElementById('edit-stop').value = t.stop || '';
+  document.getElementById('edit-exit').value = t.exit || '';
+  document.getElementById('edit-shares').value = t.shares || '';
+  document.getElementById('edit-entry-date').value = t.entryDate || '';
+  document.getElementById('edit-exit-date').value = t.exitDate || '';
+  document.getElementById('edit-strategy').value = t.strategy || '';
+  document.getElementById('edit-timeframe').value = t.timeframe || '';
+  document.getElementById('edit-mood').value = t.mood || '';
+  document.getElementById('edit-planned').value = t.plannedTarget || '';
+  document.getElementById('edit-notes').value = t.notes || '';
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  editingIndex = null;
+  document.getElementById('edit-modal').classList.add('hidden');
+}
+
+function saveEdit() {
+  if (editingIndex === null) return;
+  const t = trades[editingIndex];
+  const symbol = document.getElementById('edit-symbol').value.trim().toUpperCase();
+  const direction = document.getElementById('edit-direction').value;
+  const entry = parseFloat(document.getElementById('edit-entry').value);
+  const stop = parseFloat(document.getElementById('edit-stop').value);
+  const shares = parseFloat(document.getElementById('edit-shares').value);
+  const entryDate = document.getElementById('edit-entry-date').value;
+  const exit = document.getElementById('edit-exit').value;
+  const exitDate = document.getElementById('edit-exit-date').value;
+
+  if (!symbol || !entry || !stop || !shares || !entryDate) { alert('请填写必填项'); return; }
+  if (direction === 'long' && stop >= entry) { alert('做多时止损价必须低于买入价'); return; }
+  if (direction === 'short' && stop <= entry) { alert('做空时止损价必须高于买入价'); return; }
+
+  t.symbol = symbol;
+  t.direction = direction;
+  t.entry = entry;
+  t.stop = stop;
+  t.shares = shares;
+  t.entryDate = entryDate;
+  t.exit = exit || null;
+  t.exitDate = exitDate || null;
+  t.strategy = document.getElementById('edit-strategy').value;
+  t.timeframe = document.getElementById('edit-timeframe').value;
+  t.mood = document.getElementById('edit-mood').value;
+  t.plannedTarget = document.getElementById('edit-planned').value || null;
+  t.notes = document.getElementById('edit-notes').value;
+
+  persistTrades(); renderAll(); closeEditModal();
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+}
+function clearAll() {
+  if (confirm('确定清空所有交易记录吗？此操作不可恢复。')) {
+    trades = []; persistTrades(); renderAll();
+    if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+  }
+}
+
+// ==================== GitHub 同步 ====================
+async function fetchWithTimeout(url, options, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try { const res = await fetch(url, { ...options, signal: controller.signal }); clearTimeout(id); return res; }
+  catch (err) { clearTimeout(id); if (err.name === 'AbortError') throw new Error(`请求超时 (${timeoutMs/1000}秒)`); throw err; }
+}
+async function githubRequest(url, method, body, authType = 'token') {
+  const headers = { 'Authorization': `${authType} ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+  log(`→ 请求 ${method} ${url.split('?')[0]}`, 'info');
+  let res;
+  try { res = await fetchWithTimeout(url, { method, headers, mode: 'cors', body: body ? JSON.stringify(body) : undefined }, 10000); }
+  catch (networkErr) {
+    log(`✖ 网络层错误: ${networkErr.name} - ${networkErr.message}`, 'err');
+    if (networkErr.message.includes('超时')) log('  诊断: 请求超过10秒无响应。国内访问 GitHub API 不稳定，建议开启代理/VPN。', 'err');
+    else if (networkErr.name === 'TypeError') log('  诊断: 可能是 CORS 被拦截、网络断开、或浏览器扩展阻止了请求。', 'err');
+    throw networkErr;
+  }
+  log(`← HTTP ${res.status}`, res.ok ? 'ok' : 'err');
+  let responseBody = '';
+  try { const clone = res.clone(); responseBody = await clone.text(); if (responseBody && responseBody.length < 500) log(`  响应: ${responseBody.substring(0,300)}`, 'info'); } catch(e){}
+  if (!res.ok) {
+    let errMsg = `HTTP ${res.status}`;
+    try { const json = JSON.parse(responseBody); errMsg = json.message || errMsg; } catch(e){}
+    if (res.status === 401) { log('  诊断: Token 无效或已撤销。', 'err'); log('  解决: 重新生成 Classic Token（只勾选 gist）。', 'warn'); }
+    else if (res.status === 403) log('  诊断: 权限不足。Token 必须勾选 gist 权限。', 'err');
+    else if (res.status === 404) log('  诊断: Gist ID 不存在。', 'err');
+    throw new Error(errMsg);
+  }
+  return res.json();
+}
+async function testConnection() {
+  clearLog(); setLoading('btn-test', true);
+  if (!ghConfig.token) { log('✖ 请先填写 Token', 'err'); setLoading('btn-test', false); return; }
+  try { const data = await githubRequest('https://api.github.com/user', 'GET'); log(`✅ 连接成功！用户: ${data.login}`, 'ok'); }
+  catch (e) { log(`✖ 失败: ${e.message}`, 'err'); }
+  finally { setLoading('btn-test', false); }
+}
+async function pushToGitHub() {
+  clearLog(); setLoading('btn-push', true);
+  if (!ghConfig.token) { log('✖ 请先填写 Token', 'err'); setLoading('btn-push', false); return; }
+  const payload = { trades, settings, equitySnapshots, humanmadeTrades, humanmadeCashflows, humanmadeFxCache };
+  const content = JSON.stringify(payload, null, 2);
+  try {
+    if (!ghConfig.gistId) {
+      log('🆕 创建新的私有 Gist...', 'info');
+      const data = await githubRequest('https://api.github.com/gists', 'POST', { description: '交易记录 v2', public: false, files: { 'trading_data.json': { content } } });
+      ghConfig.gistId = data.id;
+      document.getElementById('gh-gist-id').value = data.id;
+      persistGHConfig(); updateGHStatus();
+      log(`✅ 创建成功！Gist ID: ${data.id}`, 'ok');
+    } else {
+      log('⬆️ 更新 Gist...', 'info');
+      await githubRequest(`https://api.github.com/gists/${ghConfig.gistId}`, 'PATCH', { files: { 'trading_data.json': { content } } });
+      log('✅ 同步成功', 'ok');
+    }
+  } catch (e) { log(`✖ 同步失败: ${e.message}`, 'err'); }
+  finally { setLoading('btn-push', false); }
+}
+async function pullFromGitHub() {
+  clearLog(); setLoading('btn-pull', true);
+  if (!ghConfig.token || !ghConfig.gistId) { log('✖ 请先配置 Token 和 Gist ID', 'err'); setLoading('btn-pull', false); return; }
+  try {
+    log('⬇️ 拉取中...', 'info');
+    const data = await githubRequest(`https://api.github.com/gists/${ghConfig.gistId}`, 'GET');
+    const file = data.files['trading_data.json'];
+    if (!file) { log('✖ Gist 中未找到 trading_data.json', 'err'); setLoading('btn-pull', false); return; }
+    const payload = JSON.parse(file.content);
+    if (payload.trades) trades = payload.trades;
+    if (payload.settings) settings = payload.settings;
+    if (payload.equitySnapshots) equitySnapshots = payload.equitySnapshots;
+    if (payload.humanmadeTrades) humanmadeTrades = payload.humanmadeTrades;
+    if (payload.humanmadeCashflows) humanmadeCashflows = payload.humanmadeCashflows;
+    if (payload.humanmadeFxCache) humanmadeFxCache = payload.humanmadeFxCache;
+    persistTrades(); persistSettings(); persistEquitySnapshots(); persistHumanmadeTrades(); persistHumanmadeCashflows(); persistHumanmadeFxCache(); initSettingsUI(); renderAll();
+    log(`✅ 恢复成功！${trades.length} 笔交易，Humanmade ${humanmadeTrades.length} 笔`, 'ok');
+  } catch (e) { log(`✖ 恢复失败: ${e.message}`, 'err'); }
+  finally { setLoading('btn-pull', false); }
+}
+function saveGitHubConfig() {
+  ghConfig.token = document.getElementById('gh-token').value.trim();
+  ghConfig.gistId = document.getElementById('gh-gist-id').value.trim();
+  persistGHConfig(); updateGHStatus();
+  log('配置已保存', 'ok');
+}
+function updateGHStatus() {
+  const el = document.getElementById('sync-status');
+  if (ghConfig.token && ghConfig.gistId) { el.textContent = '已配置'; el.className = 'status status-ok'; }
+  else if (ghConfig.token) { el.textContent = '待创建 Gist'; el.className = 'status status-info'; }
+  else { el.textContent = '未配置'; el.className = 'status status-warn'; }
+}
+function loadGHConfigUI() {
+  if (ghConfig.token) document.getElementById('gh-token').value = ghConfig.token;
+  if (ghConfig.gistId) document.getElementById('gh-gist-id').value = ghConfig.gistId;
+  updateGHStatus();
+}
+
+function generateSyncUrl() {
+  const token = document.getElementById('gh-token').value.trim();
+  const gistId = document.getElementById('gh-gist-id').value.trim();
+  if (!token) { alert('请先生成或填写 GitHub Token'); return; }
+  if (!gistId) { alert('请先生成或填写 Gist ID（先点击"同步到云端"会自动创建）'); return; }
+  const url = new URL(location.href);
+  url.searchParams.set('token', token);
+  url.searchParams.set('gist', gistId);
+  document.getElementById('sync-url').value = url.toString();
+  document.getElementById('sync-url-box').style.display = 'block';
+}
+
+function copySyncUrl() {
+  const input = document.getElementById('sync-url');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    alert('链接已复制到剪贴板');
+  }).catch(() => {
+    alert('复制失败，请手动复制输入框内容');
+  });
+}
+
+// 页面加载时解析 URL 参数，自动填充配置并拉取数据
+function applyUrlConfig() {
+  const params = new URLSearchParams(location.search);
+  const token = params.get('token');
+  const gistId = params.get('gist');
+  if (!token) return;
+  document.getElementById('gh-token').value = token;
+  ghConfig.token = token;
+  if (gistId) {
+    document.getElementById('gh-gist-id').value = gistId;
+    ghConfig.gistId = gistId;
+  }
+  persistGHConfig();
+  updateGHStatus();
+  log('🔗 已从链接恢复 GitHub 配置', 'ok');
+  // 如果提供了 Gist ID，自动拉取云端数据
+  if (gistId) {
+    setTimeout(() => pullFromGitHub(), 600);
+  }
+}
+
+// ==================== 导入导出 ====================
+function exportJSON() {
+  const blob = new Blob([JSON.stringify({ trades, settings, equitySnapshots, humanmadeTrades, humanmadeCashflows, humanmadeFxCache }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `trades_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+}
+function importJSON(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.trades) trades = data.trades;
+      if (data.settings) settings = data.settings;
+      if (data.equitySnapshots) equitySnapshots = data.equitySnapshots;
+      if (data.humanmadeTrades) humanmadeTrades = data.humanmadeTrades;
+      if (data.humanmadeCashflows) humanmadeCashflows = data.humanmadeCashflows;
+      if (data.humanmadeFxCache) humanmadeFxCache = data.humanmadeFxCache;
+      persistTrades(); persistSettings(); persistEquitySnapshots(); persistHumanmadeTrades(); persistHumanmadeCashflows(); persistHumanmadeFxCache(); initSettingsUI(); renderAll();
+      alert(`导入成功，共 ${trades.length} 笔交易，Humanmade ${humanmadeTrades.length} 笔`);
+    } catch (err) { alert('解析失败: ' + err.message); }
+  };
+  reader.readAsText(file); input.value = '';
+}
+
+// ==================== 事件监听 & 初始化 ====================
+['input-entry', 'input-stop', 'input-direction', 'input-shares', 'input-exit'].forEach(id => {
+  document.getElementById(id).addEventListener('input', calculateRLevels);
+});
+['hm-trade-shares', 'hm-trade-jpy', 'hm-trade-twd'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateHumanmadeBrokerRate);
+});
+document.getElementById('cfg-price-key').addEventListener('input', () => {
+  settings.priceApiKey = document.getElementById('cfg-price-key').value.trim();
+  persistSettings();
+});
+
+// Humanmade 表单默认日期为今天
+(function setHumanmadeDefaultDates() {
+  const today = new Date().toISOString().slice(0, 10);
+  const tradeDate = document.getElementById('hm-trade-date');
+  const cashDate = document.getElementById('hm-cash-date');
+  if (tradeDate) tradeDate.value = today;
+  if (cashDate) cashDate.value = today;
+})();
+
+// 兼容旧数据迁移
+if (localStorage.getItem('trades') && !localStorage.getItem('trades_v2')) {
+  const old = JSON.parse(localStorage.getItem('trades') || '[]');
+  trades = old.map(t => ({ ...t, shares: t.shares || 100 }));
+  localStorage.removeItem('trades'); persistTrades();
+}
+
+loadGHConfigUI();
+applyUrlConfig(); // 如果 URL 带 token/gist，自动填充并拉取
+initSettingsUI();
+renderAll();
+
+// 恢复上次活跃 Tab
+const lastActiveTab = localStorage.getItem('lastActiveTab') || 'ztrade';
+switchTab(lastActiveTab);
+
+// 页面加载后，如果开启了自动恢复且已配置，自动拉取
+window.addEventListener('load', () => {
+  const urlHadConfig = new URLSearchParams(location.search).has('token');
+  if (!urlHadConfig && settings.autoPull && ghConfig.token && ghConfig.gistId) {
+    setTimeout(() => pullFromGitHub(), 800);
+  }
+  if (settings.autoRefresh && settings.priceSource !== 'manual') {
+    setTimeout(() => refreshAllPositionPrices(), 1200);
+  }
+  // 启动每日 9 点权益快照调度
+  scheduleDailySnapshot();
+  // 若当前已过 9 点且当天尚未记录快照，立即补录
+  const now = new Date();
+  const todayRecorded = equitySnapshots.some(s => s.date === now.toISOString().slice(0, 10));
+  if (now.getHours() >= 9 && !todayRecorded) {
+    setTimeout(() => recordEquitySnapshot(), 2000);
+  }
+});
+</script>
+</body>
+</html>
