@@ -394,10 +394,10 @@
       </div>
       <div class="hm-rate-row" style="margin-top: 12px;">
         <div class="hm-rate-note">券商汇率 = 实际 TWD / (股数 × JPY 单价)，自动计算，可手动覆盖。</div>
-        <div class="hm-rate-note">市场汇率优先从 Frankfurter API 获取；若失败请手动输入。</div>
+        <div class="hm-rate-note">市场汇率优先从公开汇率 API 获取；若失败请手动输入。</div>
       </div>
       <div style="margin-top: 16px; display: flex; gap: 10px;">
-        <button class="btn btn-secondary" onclick="fetchMarketRateForForm()">🔌 获取市场汇率</button>
+        <button class="btn btn-secondary" onclick="fetchMarketRateForForm(this)">🔌 获取市场汇率</button>
         <button class="btn btn-primary" style="flex: 1;" onclick="addHumanmadeTrade()">➕ 添加交易</button>
       </div>
     </div>
@@ -489,6 +489,33 @@
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="saveEdit()">💾 保存修改</button>
       <button class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Humanmade 编辑交易弹窗 -->
+<div id="hm-edit-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeHmEditModal()"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>✏️ 编辑 Humanmade 交易</h3>
+      <button class="modal-close" onclick="closeHmEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid grid-3">
+        <div class="section"><label class="label">日期 *</label><input type="date" id="hm-edit-date"></div>
+        <div class="section"><label class="label">方向 *</label><select id="hm-edit-type"><option value="buy">买入 (Buy)</option><option value="sell">卖出 (Sell)</option></select></div>
+        <div class="section"><label class="label">股数 *</label><input type="number" id="hm-edit-shares" min="1" step="1"></div>
+        <div class="section"><label class="label">JPY 单价 *</label><input type="number" id="hm-edit-jpy" step="0.01"></div>
+        <div class="section"><label class="label">实际 TWD 金额 *</label><input type="number" id="hm-edit-twd" step="0.01"></div>
+        <div class="section"><label class="label">券商汇率</label><input type="number" id="hm-edit-broker-rate" step="0.000001" placeholder="留空自动计算"></div>
+        <div class="section"><label class="label">市场汇率 *</label><input type="number" id="hm-edit-market-rate" step="0.000001"></div>
+        <div class="section" style="grid-column: 2 / -1;"><label class="label">备注</label><input type="text" id="hm-edit-notes"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveHmEdit()">💾 保存修改</button>
+      <button class="btn btn-secondary" onclick="closeHmEditModal()">取消</button>
     </div>
   </div>
 </div>
@@ -645,7 +672,7 @@ function getCurrentTotalEquity() {
 }
 
 async function recordEquitySnapshot(force = false) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateStr();
   const existingIndex = equitySnapshots.findIndex(snap => snap.date === today);
   if (existingIndex >= 0 && !force) return;
 
@@ -789,6 +816,14 @@ async function fetchPrice(symbol) {
 // ==================== Humanmade FX 汇率 API ====================
 const HUMANMADE_SYMBOL = 'HUMAN MADE 456A';
 
+// 本地时区日期字符串（避免 toISOString 的 UTC 偏差：北京时间 0-8 点会错一天）
+function localDateStr(d = new Date()) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function addDays(dateStr, days) {
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + days);
@@ -826,10 +861,11 @@ async function getMarketRateWithFallback(date, tryPreviousDays = 5) {
   return { rate: null, source: 'error', error: lastError };
 }
 
-async function fetchMarketRateForForm() {
+async function fetchMarketRateForForm(btn) {
   const date = document.getElementById('hm-trade-date').value;
   if (!date) { alert('请先填写交易日期'); return; }
-  const btn = event.target;
+  if (!btn) btn = document.querySelector('button[onclick^="fetchMarketRateForForm"]');
+  if (!btn) return;
   btn.disabled = true; btn.classList.add('loading');
   try {
     const result = await getMarketRateWithFallback(date);
@@ -901,6 +937,32 @@ function computeHumanmadeFifo() {
   return { openShares, avgJpyCost, realizedPnl, openTwdCost, lots };
 }
 
+function computeHumanmadePerTradeRealized() {
+  // 按 FIFO 规则计算每笔卖出交易各自的已实现盈亏，返回 { [tradeId]: pnl }
+  const lots = [];
+  const realizedById = {};
+  const sorted = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  sorted.forEach(t => {
+    if (t.type === 'buy') {
+      lots.push({ shares: t.shares, twdPerShare: t.twdAmount / t.shares });
+    } else {
+      let remaining = t.shares;
+      const sellTwdPerShare = t.twdAmount / t.shares;
+      let pnl = 0;
+      while (remaining > 0 && lots.length > 0) {
+        const lot = lots[0];
+        const matched = Math.min(remaining, lot.shares);
+        pnl += matched * (sellTwdPerShare - lot.twdPerShare);
+        lot.shares -= matched;
+        remaining -= matched;
+        if (lot.shares <= 0) lots.shift();
+      }
+      realizedById[t.id] = pnl;
+    }
+  });
+  return realizedById;
+}
+
 function computeHumanmadeStats() {
   const fifo = computeHumanmadeFifo();
   const totalFxPnl = humanmadeTrades.reduce((sum, t) => sum + calculateTradeFxPnl(t), 0);
@@ -939,10 +1001,13 @@ function calculateHumanmadeEquitySeries() {
     events.push({ date: c.date, type: 'cashflow', amount: c.type === 'deposit' ? c.amount : -c.amount });
   });
 
-  // 交易事件：将每笔 FX PnL 在交易日记入
+  // 交易事件：卖出时计入已实现盈亏（买入只是现金↔持仓转换，总资产不变）
+  // 与「当前总资产」卡片口径一致：本金 + 净入金 + 已实现盈亏 + 未实现盈亏
+  const realizedById = computeHumanmadePerTradeRealized();
   const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
   sortedTrades.forEach(t => {
-    events.push({ date: t.date, type: 'trade', amount: calculateTradeFxPnl(t) });
+    const realized = realizedById[t.id] || 0;
+    if (realized !== 0) events.push({ date: t.date, type: 'trade', amount: realized });
   });
 
   if (events.length === 0) return { series: [initialCapital], labels: ['初始'] };
@@ -1015,6 +1080,14 @@ async function addHumanmadeTrade() {
     return;
   }
 
+  // 卖出超过当前持仓时提示确认
+  if (type === 'sell') {
+    const { openShares } = computeHumanmadeFifo();
+    if (shares > openShares) {
+      if (!confirm(`卖出股数 (${shares}) 超过当前持仓 (${openShares} 股)，确定要继续吗？`)) return;
+    }
+  }
+
   // 自动计算券商汇率
   const computedBrokerRate = calculateBrokerRate(shares, jpyPrice, twdAmount);
   if (isNaN(brokerRate) || brokerRate <= 0) brokerRate = computedBrokerRate;
@@ -1067,6 +1140,66 @@ function deleteHumanmadeTrade(idx) {
     renderHumanmade();
     if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
   }
+}
+
+// ==================== Humanmade 交易编辑 ====================
+let hmEditingIndex = null;
+
+function openHmEditModal(idx) {
+  hmEditingIndex = idx;
+  const t = humanmadeTrades[idx];
+  document.getElementById('hm-edit-date').value = t.date || '';
+  document.getElementById('hm-edit-type').value = t.type || 'buy';
+  document.getElementById('hm-edit-shares').value = t.shares || '';
+  document.getElementById('hm-edit-jpy').value = t.jpyPrice || '';
+  document.getElementById('hm-edit-twd').value = t.twdAmount || '';
+  document.getElementById('hm-edit-broker-rate').value = t.brokerRate || '';
+  document.getElementById('hm-edit-market-rate').value = t.marketRate || '';
+  document.getElementById('hm-edit-notes').value = t.notes || '';
+  document.getElementById('hm-edit-modal').classList.remove('hidden');
+}
+
+function closeHmEditModal() {
+  hmEditingIndex = null;
+  document.getElementById('hm-edit-modal').classList.add('hidden');
+}
+
+function saveHmEdit() {
+  if (hmEditingIndex === null) return;
+  const t = humanmadeTrades[hmEditingIndex];
+  const date = document.getElementById('hm-edit-date').value;
+  const type = document.getElementById('hm-edit-type').value;
+  const shares = parseInt(document.getElementById('hm-edit-shares').value, 10);
+  const jpyPrice = parseFloat(document.getElementById('hm-edit-jpy').value);
+  const twdAmount = parseFloat(document.getElementById('hm-edit-twd').value);
+  let brokerRate = parseFloat(document.getElementById('hm-edit-broker-rate').value);
+  const marketRate = parseFloat(document.getElementById('hm-edit-market-rate').value);
+  const notes = document.getElementById('hm-edit-notes').value.trim();
+
+  if (!date || isNaN(shares) || isNaN(jpyPrice) || isNaN(twdAmount)) {
+    alert('请填写必填项：日期、股数、JPY 单价、实际 TWD 金额');
+    return;
+  }
+  if (shares <= 0 || jpyPrice <= 0 || twdAmount <= 0) {
+    alert('股数、JPY 单价、实际 TWD 金额必须大于 0');
+    return;
+  }
+  if (isNaN(brokerRate) || brokerRate <= 0) brokerRate = calculateBrokerRate(shares, jpyPrice, twdAmount);
+  if (isNaN(marketRate) || marketRate <= 0) { alert('市场汇率必须大于 0'); return; }
+
+  t.date = date;
+  t.type = type;
+  t.shares = shares;
+  t.jpyPrice = jpyPrice;
+  t.twdAmount = twdAmount;
+  t.brokerRate = brokerRate;
+  t.marketRate = marketRate;
+  t.notes = notes;
+
+  persistHumanmadeTrades();
+  renderHumanmade();
+  closeHmEditModal();
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
 }
 
 function addHumanmadeCashflow() {
@@ -1174,7 +1307,7 @@ function renderHumanmadeTrades() {
       <td class="${fxPnlClass}">${fxPnlStr}</td>
       <td>${rateSourceBadge}</td>
       <td>${t.notes || '-'}</td>
-      <td><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteHumanmadeTrade(${i})">删除</button></td>
+      <td><button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; margin-right: 4px;" onclick="openHmEditModal(${i})">编辑</button><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteHumanmadeTrade(${i})">删除</button></td>
     </tr>`;
   });
 }
@@ -1433,6 +1566,7 @@ function saveSettingsForm() {
   updateDashboardVisibility();
   persistSettings();
   renderAll();
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
   alert('设置已保存');
 }
 
@@ -1490,6 +1624,7 @@ function saveHumanmadeInitialCapital() {
   settings.humanmadeInitialCapital = parseFloat(document.getElementById('hm-initial-capital').value) || DEFAULT_SETTINGS.humanmadeInitialCapital;
   persistSettings();
   renderHumanmade();
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
   alert('Humanmade 初始本金已保存');
 }
 
@@ -1500,7 +1635,9 @@ function computeStats(symbolFilter = null) {
     const normalizedFilter = symbolFilter.toString().toLowerCase().trim();
     tradeList = trades.filter(t => t.symbol && t.symbol.toString().toLowerCase().trim() === normalizedFilter);
   }
-  const closed = tradeList.filter(t => t.exit !== null && t.exit !== undefined && t.exit !== '');
+  const closed = tradeList
+    .filter(t => t.exit !== null && t.exit !== undefined && t.exit !== '')
+    .sort((a, b) => new Date(a.exitDate || a.entryDate) - new Date(b.exitDate || b.entryDate));
   const openTrades = tradeList.filter(t => !t.exit);
   const total = closed.length;
 
@@ -1605,7 +1742,7 @@ function renderTrades() {
     // 已平仓的 R 和盈亏
     const rawR = exit !== null ? calculateR(entry, stop, exit, t.direction) : null;
     const displayR = rawR !== null ? getDisplayR(rawR) : null;
-    const rStr = rawR !== null ? (displayR.isNormalized ? `~${displayR.value}R` : `${displayR.value}R`) : '-';
+    const rStr = rawR !== null ? (displayR.isNormalized ? `~${displayR.value}R` : `${displayR.value.toFixed(2)}R`) : '-';
     const rTitle = rawR !== null && displayR.isNormalized ? `精确值: ${rawR.toFixed(2)}R (宽容度±${settings.rTolerance}%)` : '';
     const pnl = exit !== null ? calculateActualPnl(entry, exit, t.direction, shares) : null;
     const isWin = exit !== null && (displayR ? displayR.value : rawR) > 0;
@@ -2032,7 +2169,7 @@ function applyUrlConfig() {
 function exportJSON() {
   const blob = new Blob([JSON.stringify({ trades, settings, equitySnapshots, humanmadeTrades, humanmadeCashflows, humanmadeFxCache }, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `trades_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href = url; a.download = `trades_${localDateStr()}.json`; a.click(); URL.revokeObjectURL(url);
 }
 function importJSON(input) {
   const file = input.files[0]; if (!file) return;
@@ -2068,7 +2205,7 @@ document.getElementById('cfg-price-key').addEventListener('input', () => {
 
 // Humanmade 表单默认日期为今天
 (function setHumanmadeDefaultDates() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateStr();
   const tradeDate = document.getElementById('hm-trade-date');
   const cashDate = document.getElementById('hm-cash-date');
   if (tradeDate) tradeDate.value = today;
@@ -2104,10 +2241,21 @@ window.addEventListener('load', () => {
   scheduleDailySnapshot();
   // 若当前已过 9 点且当天尚未记录快照，立即补录
   const now = new Date();
-  const todayRecorded = equitySnapshots.some(s => s.date === now.toISOString().slice(0, 10));
+  const todayRecorded = equitySnapshots.some(s => s.date === localDateStr());
   if (now.getHours() >= 9 && !todayRecorded) {
     setTimeout(() => recordEquitySnapshot(), 2000);
   }
+});
+
+// 窗口缩放时重绘当前 Tab 的图表（防抖 200ms，避免 Canvas 拉伸模糊）
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab && activeTab.id === 'humanmade-tab') renderHumanmade();
+    else renderAll();
+  }, 200);
 });
 </script>
 </body>
