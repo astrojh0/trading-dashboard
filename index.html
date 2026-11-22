@@ -130,6 +130,24 @@
   @media (max-width: 900px) { .hm-form-grid { grid-template-columns: 1fr; } }
   .hm-rate-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
   .hm-rate-note { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  /* ===== 响应式 ===== */
+  canvas { width: 100%; }
+  @media (max-width: 600px) {
+    .container { padding: 12px; }
+    .card { padding: 16px; border-radius: 12px; }
+    .grid-3, .grid-5 { grid-template-columns: repeat(2, 1fr); }
+    .hm-form-grid { grid-template-columns: repeat(2, 1fr); }
+    .hm-rate-row { grid-template-columns: 1fr; }
+    .stat { padding: 12px 8px; }
+    .stat-value { font-size: 20px; }
+    .title { font-size: 16px; flex-wrap: wrap; }
+    .tab-nav { gap: 6px; }
+    .tab-btn { padding: 10px 12px; font-size: 13px; flex: 1; }
+    th, td { padding: 8px 6px; font-size: 12px; }
+    .modal-content { width: 96%; padding: 16px; }
+    .btn { padding: 10px 16px; }
+  }
 </style>
 </head>
 <body>
@@ -520,6 +538,29 @@
   </div>
 </div>
 
+<!-- Humanmade 编辑现金流弹窗 -->
+<div id="hm-cf-edit-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeHmCfEditModal()"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>✏️ 编辑现金流</h3>
+      <button class="modal-close" onclick="closeHmCfEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid grid-2">
+        <div class="section"><label class="label">日期 *</label><input type="date" id="hm-cf-edit-date"></div>
+        <div class="section"><label class="label">类型 *</label><select id="hm-cf-edit-type"><option value="deposit">汇入 (Deposit)</option><option value="withdrawal">汇出 (Withdrawal)</option></select></div>
+        <div class="section"><label class="label">金额 (TWD) *</label><input type="number" id="hm-cf-edit-amount" step="0.01" min="0"></div>
+        <div class="section"><label class="label">备注</label><input type="text" id="hm-cf-edit-notes" placeholder="可选"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveHmCfEdit()">💾 保存修改</button>
+      <button class="btn btn-secondary" onclick="closeHmCfEditModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ==================== 配置定义 ====================
 const FIELD_DEFS = [
@@ -699,14 +740,31 @@ async function recordEquitySnapshot(force = false) {
 }
 
 function getEquitySeries() {
+  const s = computeStats();
+  // 实时总权益 = 本金 + 已实现盈亏 + 浮动盈亏（跟随真实资金）
+  const liveEquity = settings.initialCapital + s.totalPnl + s.floatingPnl;
   const sorted = [...equitySnapshots].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let series, labels;
   if (sorted.length === 0) {
-    // 没有快照时回退到原有闭盘权益曲线
-    const s = computeStats();
-    return { series: s.equity, labels: [] };
+    // 无快照：按卖出日期累计已实现盈亏构建曲线
+    series = [settings.initialCapital];
+    labels = ['初始'];
+    let eq = settings.initialCapital;
+    trades
+      .filter(t => t.exit !== null && t.exit !== undefined && t.exit !== '')
+      .sort((a, b) => new Date(a.exitDate || a.entryDate) - new Date(b.exitDate || b.entryDate))
+      .forEach(t => {
+        eq += calculateActualPnl(parseFloat(t.entry), parseFloat(t.exit), t.direction, parseFloat(t.shares));
+        series.push(eq);
+        labels.push((t.exitDate || t.entryDate).slice(5));
+      });
+  } else {
+    series = [settings.initialCapital, ...sorted.map(snap => snap.equity)];
+    labels = ['初始', ...sorted.map(snap => snap.date.slice(5))];
   }
-  const series = [settings.initialCapital, ...sorted.map(s => s.equity)];
-  const labels = ['初始', ...sorted.map(s => s.date.slice(5))]; // 显示 MM-DD
+  // 末尾追加「现在」点，曲线始终反映当前真实资金（含浮动盈亏）
+  series.push(liveEquity);
+  labels.push('现在');
   return { series, labels };
 }
 
@@ -971,9 +1029,11 @@ function computeHumanmadeStats() {
 
   const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
   const lastTrade = sortedTrades[sortedTrades.length - 1];
+  const latestJpyPrice = lastTrade ? lastTrade.jpyPrice : 0;
   const latestRate = lastTrade?.marketRate || lastTrade?.brokerRate || 0;
 
-  const positionValue = fifo.openShares * fifo.avgJpyCost * latestRate;
+  // 持仓市值 = 持仓股数 × 最新已知 JPY 价格 × 最新市场汇率（与资金曲线口径一致）
+  const positionValue = fifo.openShares * latestJpyPrice * latestRate;
   const unrealizedPnl = positionValue - fifo.openTwdCost;
 
   // 总资产 = 初始本金 + 净入金 + 已实现盈亏 + 未实现盈亏
@@ -994,52 +1054,41 @@ function computeHumanmadeStats() {
 
 function calculateHumanmadeEquitySeries() {
   const initialCapital = settings.humanmadeInitialCapital ?? DEFAULT_SETTINGS.humanmadeInitialCapital;
+
+  // 合并所有事件（交易 + 现金流），按日期排序
   const events = [];
-
-  // 现金流事件
-  humanmadeCashflows.forEach(c => {
-    events.push({ date: c.date, type: 'cashflow', amount: c.type === 'deposit' ? c.amount : -c.amount });
-  });
-
-  // 交易事件：卖出时计入已实现盈亏（买入只是现金↔持仓转换，总资产不变）
-  // 与「当前总资产」卡片口径一致：本金 + 净入金 + 已实现盈亏 + 未实现盈亏
-  const realizedById = computeHumanmadePerTradeRealized();
-  const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
-  sortedTrades.forEach(t => {
-    const realized = realizedById[t.id] || 0;
-    if (realized !== 0) events.push({ date: t.date, type: 'trade', amount: realized });
-  });
-
+  humanmadeTrades.forEach(t => events.push({ date: t.date, kind: 'trade', t }));
+  humanmadeCashflows.forEach(c => events.push({ date: c.date, kind: 'cash', c }));
   if (events.length === 0) return { series: [initialCapital], labels: ['初始'] };
-
-  // 未实现持仓：加到最新日期
-  const fifo = computeHumanmadeFifo();
-  if (fifo.openShares > 0) {
-    const lastTrade = sortedTrades[sortedTrades.length - 1];
-    const latestRate = lastTrade?.marketRate || lastTrade?.brokerRate || 0;
-    const positionValue = fifo.openShares * fifo.avgJpyCost * latestRate;
-    const unrealizedPnl = positionValue - fifo.openTwdCost;
-    const lastDate = events.map(e => e.date).sort().pop();
-    events.push({ date: lastDate, type: 'unrealized', amount: unrealizedPnl });
-  }
-
-  // 按日期排序并聚合
   events.sort((a, b) => new Date(a.date) - new Date(b.date));
-  const dateMap = {};
+
+  // 最新估值参数：最近一笔交易的 JPY 价格与市场汇率（近似"实时价值"）
+  const sortedTrades = [...humanmadeTrades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const lastTrade = sortedTrades[sortedTrades.length - 1];
+  const latestJpyPrice = lastTrade ? lastTrade.jpyPrice : 0;
+  const latestRate = lastTrade ? (lastTrade.marketRate || lastTrade.brokerRate || 0) : 0;
+
+  // 逐日推演：曲线 = 现金余额 + 持仓市值（持仓股数 × 最新 JPY 价格 × 最新汇率）
+  // 买入时现金减少、持仓市值增加，两者对冲，曲线不会因买入而下跌
+  let cash = initialCapital;
+  let shares = 0;
+  const series = [initialCapital];
+  const labels = ['初始'];
   events.forEach(e => {
-    if (!dateMap[e.date]) dateMap[e.date] = 0;
-    dateMap[e.date] += e.amount;
+    if (e.kind === 'cash') {
+      cash += e.c.type === 'deposit' ? e.c.amount : -e.c.amount;
+    } else if (e.t.type === 'buy') {
+      cash -= e.t.twdAmount;
+      shares += e.t.shares;
+    } else {
+      cash += e.t.twdAmount;
+      shares -= e.t.shares;
+    }
+    series.push(cash + shares * latestJpyPrice * latestRate);
+    labels.push(e.date.slice(5));
   });
 
-  const labels = Object.keys(dateMap).sort((a, b) => new Date(a) - new Date(b));
-  const series = [];
-  let equity = initialCapital;
-  labels.forEach(date => {
-    equity += dateMap[date];
-    series.push(equity);
-  });
-
-  return { series: [initialCapital, ...series], labels: ['初始', ...labels.map(d => d.slice(5))] };
+  return { series, labels };
 }
 
 function getHumanmadeFxRateSeries() {
@@ -1202,6 +1251,45 @@ function saveHmEdit() {
   if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
 }
 
+// ==================== Humanmade 现金流编辑 ====================
+let hmCfEditingIndex = null;
+
+function openHmCfEditModal(idx) {
+  hmCfEditingIndex = idx;
+  const c = humanmadeCashflows[idx];
+  document.getElementById('hm-cf-edit-date').value = c.date || '';
+  document.getElementById('hm-cf-edit-type').value = c.type || 'deposit';
+  document.getElementById('hm-cf-edit-amount').value = c.amount || '';
+  document.getElementById('hm-cf-edit-notes').value = c.notes || '';
+  document.getElementById('hm-cf-edit-modal').classList.remove('hidden');
+}
+
+function closeHmCfEditModal() {
+  hmCfEditingIndex = null;
+  document.getElementById('hm-cf-edit-modal').classList.add('hidden');
+}
+
+function saveHmCfEdit() {
+  if (hmCfEditingIndex === null) return;
+  const c = humanmadeCashflows[hmCfEditingIndex];
+  const date = document.getElementById('hm-cf-edit-date').value;
+  const type = document.getElementById('hm-cf-edit-type').value;
+  const amount = parseFloat(document.getElementById('hm-cf-edit-amount').value);
+  const notes = document.getElementById('hm-cf-edit-notes').value.trim();
+  if (!date || isNaN(amount) || amount <= 0) {
+    alert('请填写必填项：日期、金额（必须大于0）');
+    return;
+  }
+  c.date = date;
+  c.type = type;
+  c.amount = amount;
+  c.notes = notes;
+  persistHumanmadeCashflows();
+  renderHumanmade();
+  closeHmCfEditModal();
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+}
+
 function addHumanmadeCashflow() {
   const date = document.getElementById('hm-cash-date').value;
   const type = document.getElementById('hm-cash-type').value;
@@ -1328,7 +1416,7 @@ function renderHumanmadeCashflows() {
       <td>${typeStr}</td>
       <td class="${amountClass}">${sign}${formatMoney(c.amount).replace('¥', '')}</td>
       <td>${c.notes || '-'}</td>
-      <td><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteHumanmadeCashflow(${i})">删除</button></td>
+      <td><button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; margin-right: 4px;" onclick="openHmCfEditModal(${i})">编辑</button><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteHumanmadeCashflow(${i})">删除</button></td>
     </tr>`;
   });
 }
