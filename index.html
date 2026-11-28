@@ -42,6 +42,8 @@
   .tag { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
   .tag-win { background: #d1fae5; color: #065f46; }
   .tag-loss { background: #fee2e2; color: #991b1b; }
+  .tag-stock { background: #dbeafe; color: #1e40af; }
+  .tag-crypto { background: #fef3c7; color: #92400e; }
   .tag-open { background: #dbeafe; color: #1e40af; }
   .r-level { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-right: 6px; margin-bottom: 6px; }
   .r-1 { background: #dbeafe; color: #1e40af; }
@@ -157,6 +159,7 @@
   <div class="tab-nav" role="tablist">
     <button class="tab-btn active" data-tab="ztrade" onclick="switchTab('ztrade')">Z-trade</button>
     <button class="tab-btn" data-tab="humanmade" onclick="switchTab('humanmade')">Humanmade</button>
+    <button class="tab-btn" data-tab="overseas" onclick="switchTab('overseas')">🌏 海外资产</button>
   </div>
 
   <!-- Z-trade 标签页 -->
@@ -477,6 +480,100 @@
 
   </div>
 
+  <!-- 海外资产标签页 -->
+  <div id="overseas-tab" class="tab-content">
+
+    <!-- 资产总览 -->
+    <div class="card">
+      <div class="title" style="justify-content: space-between;">
+        <span>🌏 海外资产总览（折人民币）</span>
+        <button class="btn btn-success" style="padding: 6px 14px; font-size: 12px;" id="btn-oa-refresh" onclick="refreshOverseasPrices()"><span class="spinner"></span>🔄 一键刷新汇率与价格</button>
+      </div>
+      <div class="grid grid-5">
+        <div class="stat"><div class="stat-value" id="oa-total">¥0</div><div class="stat-label">总资产 (CNY)</div></div>
+        <div class="stat"><div class="stat-value" id="oa-cash-total">¥0</div><div class="stat-label">现金/存款</div></div>
+        <div class="stat"><div class="stat-value" id="oa-stock-total">¥0</div><div class="stat-label">股票</div></div>
+        <div class="stat"><div class="stat-value" id="oa-crypto-total">¥0</div><div class="stat-label">加密货币</div></div>
+        <div class="stat"><div class="stat-value" id="oa-count">0</div><div class="stat-label">资产条目</div></div>
+      </div>
+      <div class="hint" id="oa-fx-info" style="margin-top: 10px;">汇率未更新，点击「一键刷新」获取最新汇率</div>
+    </div>
+
+    <!-- 添加资产 -->
+    <div class="card">
+      <div class="title">➕ 添加资产</div>
+      <div class="grid grid-3">
+        <div class="section">
+          <label class="label">账户 *</label>
+          <input type="text" id="oa-account" list="oa-account-list" placeholder="如: 富邦、盈透">
+          <datalist id="oa-account-list">
+            <option value="台湾银行卡"></option>
+            <option value="香港银行卡"></option>
+            <option value="富邦证券"></option>
+            <option value="盈透证券"></option>
+            <option value="币安"></option>
+          </datalist>
+        </div>
+        <div class="section">
+          <label class="label">类型 *</label>
+          <select id="oa-type" onchange="oaToggleTypeFields()">
+            <option value="cash">现金/存款</option>
+            <option value="stock">股票</option>
+            <option value="crypto">加密货币</option>
+          </select>
+        </div>
+        <div class="section" id="oa-currency-section">
+          <label class="label">币种 *</label>
+          <select id="oa-currency">
+            <option value="TWD">TWD 台币</option>
+            <option value="USD">USD 美元</option>
+            <option value="HKD">HKD 港币</option>
+            <option value="JPY">JPY 日元</option>
+            <option value="CNY">CNY 人民币</option>
+          </select>
+        </div>
+        <div class="section" id="oa-symbol-section" style="display:none;">
+          <label class="label">代码 *</label>
+          <input type="text" id="oa-symbol" placeholder="股票: AAPL / 00700 | 币: BTC">
+        </div>
+        <div class="section" id="oa-market-section" style="display:none;">
+          <label class="label">市场 *</label>
+          <select id="oa-market">
+            <option value="US">美股</option>
+            <option value="JP">日股</option>
+            <option value="HK">港股</option>
+          </select>
+        </div>
+        <div class="section">
+          <label class="label" id="oa-amount-label">金额 *</label>
+          <input type="number" id="oa-amount" step="any" min="0" placeholder="数量或金额">
+        </div>
+        <div class="section" id="oa-price-section" style="display:none;">
+          <label class="label">单价（留空待刷新）</label>
+          <input type="number" id="oa-price" step="any" min="0" placeholder="股票原币价 / 币的USD价">
+        </div>
+        <div class="section">
+          <label class="label">备注</label>
+          <input type="text" id="oa-notes" placeholder="可选">
+        </div>
+      </div>
+      <div class="hint" style="margin-top: 10px;">💡 美股/港股价格可一键刷新（走 Z-trade 设置的数据源）；日股单价请手动填写；加密货币通过币安接口自动取 USD 价格</div>
+      <div style="margin-top: 16px;"><button class="btn btn-primary" style="width: 100%;" onclick="addOverseasAsset()">➕ 添加资产</button></div>
+    </div>
+
+    <!-- 资产明细 -->
+    <div class="card">
+      <div class="title">📋 资产明细</div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead><tr><th>账户</th><th>类型</th><th>币种/代码</th><th>数量</th><th>单价</th><th>原币市值</th><th>汇率</th><th>CNY 价值</th><th>占比</th><th>操作</th></tr></thead>
+          <tbody id="oa-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <!-- 编辑交易弹窗 -->
@@ -561,6 +658,49 @@
   </div>
 </div>
 
+<!-- 海外资产编辑弹窗 -->
+<div id="oa-edit-modal" class="modal hidden">
+  <div class="modal-overlay" onclick="closeOaEditModal()"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>✏️ 编辑资产</h3>
+      <button class="modal-close" onclick="closeOaEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid grid-2">
+        <div class="section"><label class="label">账户 *</label><input type="text" id="oa-edit-account"></div>
+        <div class="section"><label class="label">类型</label><input type="text" id="oa-edit-type-label" disabled></div>
+        <div class="section" id="oa-edit-currency-section">
+          <label class="label">币种</label>
+          <select id="oa-edit-currency">
+            <option value="TWD">TWD 台币</option>
+            <option value="USD">USD 美元</option>
+            <option value="HKD">HKD 港币</option>
+            <option value="JPY">JPY 日元</option>
+            <option value="CNY">CNY 人民币</option>
+          </select>
+        </div>
+        <div class="section" id="oa-edit-symbol-section"><label class="label">代码</label><input type="text" id="oa-edit-symbol"></div>
+        <div class="section" id="oa-edit-market-section">
+          <label class="label">市场</label>
+          <select id="oa-edit-market">
+            <option value="US">美股</option>
+            <option value="JP">日股</option>
+            <option value="HK">港股</option>
+          </select>
+        </div>
+        <div class="section"><label class="label">数量/金额 *</label><input type="number" id="oa-edit-amount" step="any" min="0"></div>
+        <div class="section" id="oa-edit-price-section"><label class="label">单价</label><input type="number" id="oa-edit-price" step="any" min="0"></div>
+        <div class="section" style="grid-column: 1 / -1;"><label class="label">备注</label><input type="text" id="oa-edit-notes"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveOaEdit()">💾 保存修改</button>
+      <button class="btn btn-secondary" onclick="closeOaEditModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ==================== 配置定义 ====================
 const FIELD_DEFS = [
@@ -608,6 +748,9 @@ let equitySnapshots = JSON.parse(localStorage.getItem('equitySnapshots') || '[]'
 // Humanmade 独立数据模型
 let humanmadeTrades = JSON.parse(localStorage.getItem('humanmade_trades_v1') || '[]');
 let humanmadeCashflows = JSON.parse(localStorage.getItem('humanmade_cashflows_v1') || '[]');
+let overseasAssets = JSON.parse(localStorage.getItem('overseas_assets_v1') || '[]');
+let overseasFxRates = JSON.parse(localStorage.getItem('overseas_fx_v1') || '{}');
+let overseasFxDate = localStorage.getItem('overseas_fx_date_v1') || '';
 let humanmadeFxCache = JSON.parse(localStorage.getItem('humanmade_fx_cache_v1') || '{}'); // { 'YYYY-MM-DD': rate }
 
 // 保存到 localStorage 的底层函数（改名避免和 UI 函数冲突）
@@ -617,6 +760,8 @@ function persistPositionPrices() { localStorage.setItem('positionPrices', JSON.s
 function persistGHConfig() { localStorage.setItem('ghConfig', JSON.stringify(ghConfig)); }
 function persistEquitySnapshots() { localStorage.setItem('equitySnapshots', JSON.stringify(equitySnapshots)); }
 function persistHumanmadeTrades() { localStorage.setItem('humanmade_trades_v1', JSON.stringify(humanmadeTrades)); }
+function persistOverseasAssets() { localStorage.setItem('overseas_assets_v1', JSON.stringify(overseasAssets)); }
+function persistOverseasFx() { localStorage.setItem('overseas_fx_v1', JSON.stringify(overseasFxRates)); localStorage.setItem('overseas_fx_date_v1', overseasFxDate); }
 function persistHumanmadeCashflows() { localStorage.setItem('humanmade_cashflows_v1', JSON.stringify(humanmadeCashflows)); }
 function persistHumanmadeFxCache() { localStorage.setItem('humanmade_fx_cache_v1', JSON.stringify(humanmadeFxCache)); }
 
@@ -650,6 +795,7 @@ function switchTab(name) {
     content.classList.toggle('active', content.id === name + '-tab');
   });
   if (name === 'humanmade') renderHumanmade();
+  if (name === 'overseas') renderOverseas();
 }
 
 // ==================== 核心计算 ====================
@@ -1815,6 +1961,7 @@ function renderAll() {
   renderRDistChart();
   renderMonthlySummary();
   renderAdvice(s);
+  renderOverseas();
 }
 
 function renderTrades() {
@@ -2151,10 +2298,230 @@ async function testConnection() {
   catch (e) { log(`✖ 失败: ${e.message}`, 'err'); }
   finally { setLoading('btn-test', false); }
 }
+// ==================== 海外资产 ====================
+const OA_MARKET_CCY = { US: 'USD', JP: 'JPY', HK: 'HKD' };
+const OA_TYPE_LABEL = { cash: '现金/存款', stock: '股票', crypto: '加密货币' };
+
+function oaFmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return '-';
+  return Number(n.toFixed(2)).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+}
+
+function oaToggleTypeFields() {
+  const typeEl = document.getElementById('oa-type');
+  if (!typeEl) return;
+  const type = typeEl.value;
+  document.getElementById('oa-currency-section').style.display = type === 'cash' ? '' : 'none';
+  document.getElementById('oa-symbol-section').style.display = type === 'cash' ? 'none' : '';
+  document.getElementById('oa-market-section').style.display = type === 'stock' ? '' : 'none';
+  document.getElementById('oa-price-section').style.display = type === 'cash' ? 'none' : '';
+  document.getElementById('oa-amount-label').textContent = type === 'cash' ? '金额 *' : '数量 *';
+}
+
+function addOverseasAsset() {
+  const account = document.getElementById('oa-account').value.trim();
+  const type = document.getElementById('oa-type').value;
+  const amount = parseFloat(document.getElementById('oa-amount').value);
+  if (!account) { alert('请填写账户名称'); return; }
+  if (isNaN(amount) || amount <= 0) { alert('请填写有效的数量/金额'); return; }
+  const asset = { id: Date.now(), account, type, amount, notes: document.getElementById('oa-notes').value.trim() };
+  if (type === 'cash') {
+    asset.currency = document.getElementById('oa-currency').value;
+  } else {
+    const symbol = document.getElementById('oa-symbol').value.trim().toUpperCase();
+    if (!symbol) { alert('请填写代码'); return; }
+    asset.symbol = symbol;
+    if (type === 'stock') asset.market = document.getElementById('oa-market').value;
+    const price = parseFloat(document.getElementById('oa-price').value);
+    asset.price = isNaN(price) ? null : price;
+  }
+  overseasAssets.push(asset);
+  persistOverseasAssets();
+  ['oa-account', 'oa-symbol', 'oa-amount', 'oa-price', 'oa-notes'].forEach(id => document.getElementById(id).value = '');
+  renderOverseas();
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+}
+
+// 计算单条资产的 CNY 价值；缺价格或汇率时返回 null
+function oaAssetCnyValue(a) {
+  if (a.type === 'cash') {
+    const fx = a.currency === 'CNY' ? 1 : overseasFxRates[a.currency];
+    if (!fx) return null;
+    return { cny: a.amount * fx, fx, ccy: a.currency, nativeValue: a.amount };
+  }
+  if (a.price == null) return null;
+  const ccy = a.type === 'crypto' ? 'USD' : OA_MARKET_CCY[a.market];
+  const fx = overseasFxRates[ccy];
+  if (!fx) return null;
+  const nativeValue = a.amount * a.price;
+  return { cny: nativeValue * fx, fx, ccy, nativeValue };
+}
+
+function renderOverseas() {
+  const tbody = document.getElementById('oa-list');
+  if (!tbody) return;
+  oaToggleTypeFields();
+  tbody.innerHTML = '';
+  const rows = overseasAssets.map((a, i) => ({ a, i, v: oaAssetCnyValue(a) }));
+  let total = 0, cashTotal = 0, stockTotal = 0, cryptoTotal = 0;
+  rows.forEach(r => {
+    if (!r.v) return;
+    total += r.v.cny;
+    if (r.a.type === 'cash') cashTotal += r.v.cny;
+    else if (r.a.type === 'stock') stockTotal += r.v.cny;
+    else cryptoTotal += r.v.cny;
+  });
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#94a3b8;">暂无资产，先在上方添加一条</td></tr>';
+  }
+  rows.forEach(({ a, i, v }) => {
+    const typeTag = { cash: '<span class="tag tag-win">现金</span>', stock: '<span class="tag tag-stock">股票</span>', crypto: '<span class="tag tag-crypto">加密</span>' }[a.type];
+    const codeStr = a.type === 'cash' ? a.currency : a.symbol;
+    const priceStr = a.type === 'cash' ? '-' : (a.price != null ? oaFmt(a.price) : '<span style="color:#f59e0b;">待填写</span>');
+    const nativeStr = v ? oaFmt(v.nativeValue) + ' ' + v.ccy : (a.type === 'cash' ? oaFmt(a.amount) + ' ' + a.currency : '-');
+    const fxStr = v ? (v.fx === 1 ? '1' : v.fx.toFixed(4)) : '<span style="color:#f59e0b;">待刷新</span>';
+    const cnyStr = v ? formatMoney(v.cny) : '-';
+    const pctStr = v && total > 0 ? (v.cny / total * 100).toFixed(1) + '%' : '-';
+    tbody.innerHTML += `<tr>
+      <td>${a.account}</td>
+      <td>${typeTag}</td>
+      <td><strong>${codeStr}</strong>${a.notes ? `<div style="font-size:11px;color:#94a3b8;">${a.notes}</div>` : ''}</td>
+      <td>${oaFmt(a.amount)}</td>
+      <td>${priceStr}</td>
+      <td>${nativeStr}</td>
+      <td>${fxStr}</td>
+      <td><strong>${cnyStr}</strong></td>
+      <td>${pctStr}</td>
+      <td><button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; margin-right: 4px;" onclick="openOaEditModal(${i})">编辑</button><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteOverseasAsset(${i})">删除</button></td>
+    </tr>`;
+  });
+  document.getElementById('oa-total').textContent = formatMoney(total);
+  document.getElementById('oa-cash-total').textContent = formatMoney(cashTotal);
+  document.getElementById('oa-stock-total').textContent = formatMoney(stockTotal);
+  document.getElementById('oa-crypto-total').textContent = formatMoney(cryptoTotal);
+  document.getElementById('oa-count').textContent = overseasAssets.length;
+  const fxInfo = document.getElementById('oa-fx-info');
+  if (overseasFxDate && overseasFxRates.USD) {
+    const parts = ['USD', 'TWD', 'HKD', 'JPY'].filter(k => overseasFxRates[k]).map(k => `1 ${k} = ${overseasFxRates[k].toFixed(4)} CNY`);
+    fxInfo.textContent = `💱 汇率更新于 ${overseasFxDate}：${parts.join('，')}`;
+  } else {
+    fxInfo.textContent = '汇率未更新，点击「一键刷新」获取最新汇率';
+  }
+}
+
+let oaEditingIndex = null;
+function openOaEditModal(idx) {
+  oaEditingIndex = idx;
+  const a = overseasAssets[idx];
+  document.getElementById('oa-edit-account').value = a.account;
+  document.getElementById('oa-edit-type-label').value = OA_TYPE_LABEL[a.type] || a.type;
+  document.getElementById('oa-edit-amount').value = a.amount;
+  document.getElementById('oa-edit-notes').value = a.notes || '';
+  document.getElementById('oa-edit-currency-section').style.display = a.type === 'cash' ? '' : 'none';
+  document.getElementById('oa-edit-symbol-section').style.display = a.type === 'cash' ? 'none' : '';
+  document.getElementById('oa-edit-market-section').style.display = a.type === 'stock' ? '' : 'none';
+  document.getElementById('oa-edit-price-section').style.display = a.type === 'cash' ? 'none' : '';
+  if (a.type === 'cash') document.getElementById('oa-edit-currency').value = a.currency;
+  if (a.symbol) document.getElementById('oa-edit-symbol').value = a.symbol;
+  if (a.market) document.getElementById('oa-edit-market').value = a.market;
+  document.getElementById('oa-edit-price').value = a.price != null ? a.price : '';
+  document.getElementById('oa-edit-modal').classList.remove('hidden');
+}
+function closeOaEditModal() {
+  oaEditingIndex = null;
+  document.getElementById('oa-edit-modal').classList.add('hidden');
+}
+function saveOaEdit() {
+  if (oaEditingIndex === null) return;
+  const a = overseasAssets[oaEditingIndex];
+  const account = document.getElementById('oa-edit-account').value.trim();
+  const amount = parseFloat(document.getElementById('oa-edit-amount').value);
+  if (!account || isNaN(amount) || amount <= 0) { alert('请填写账户和有效的数量/金额'); return; }
+  a.account = account;
+  a.amount = amount;
+  a.notes = document.getElementById('oa-edit-notes').value.trim();
+  if (a.type === 'cash') {
+    a.currency = document.getElementById('oa-edit-currency').value;
+  } else {
+    const symbol = document.getElementById('oa-edit-symbol').value.trim().toUpperCase();
+    if (!symbol) { alert('请填写代码'); return; }
+    a.symbol = symbol;
+    if (a.type === 'stock') a.market = document.getElementById('oa-edit-market').value;
+    const price = parseFloat(document.getElementById('oa-edit-price').value);
+    a.price = isNaN(price) ? null : price;
+  }
+  persistOverseasAssets();
+  renderOverseas();
+  closeOaEditModal();
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+}
+function deleteOverseasAsset(idx) {
+  if (!confirm('确定删除这条资产记录？')) return;
+  overseasAssets.splice(idx, 1);
+  persistOverseasAssets();
+  renderOverseas();
+  if (settings.autoPush && ghConfig.token && ghConfig.gistId) pushToGitHub();
+}
+
+async function fetchCryptoPriceUsd(symbol) {
+  const sym = symbol.toUpperCase();
+  const urls = [
+    `https://data-api.binance.vision/api/v3/ticker/price?symbol=${sym}USDT`,
+    `https://api.binance.com/api/v3/ticker/price?symbol=${sym}USDT`
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const p = parseFloat(data.price);
+      if (p > 0) return p;
+    } catch (e) { /* 尝试下一个接口 */ }
+  }
+  throw new Error('币安接口未返回有效价格');
+}
+
+async function refreshOverseasPrices() {
+  setLoading('btn-oa-refresh', true);
+  const errors = [];
+  // 1) 汇率：1 单位外币 = ? CNY（与 Humanmade 同一免费汇率源）
+  try {
+    const res = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/cny.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const table = data?.cny || {};
+    const rates = { CNY: 1 };
+    ['usd', 'twd', 'hkd', 'jpy'].forEach(k => { if (table[k] > 0) rates[k.toUpperCase()] = 1 / table[k]; });
+    if (!rates.USD) throw new Error('API 未返回有效汇率');
+    overseasFxRates = rates;
+    overseasFxDate = localDateStr();
+    persistOverseasFx();
+  } catch (e) { errors.push('汇率: ' + e.message); }
+  // 2) 股票价格（美/港，复用 Z-trade 数据源）与加密货币价格（币安）
+  for (const a of overseasAssets) {
+    if (a.type === 'stock' && a.market !== 'JP') {
+      try {
+        const fetcher = settings.priceSource === 'sina' ? fetchSinaPrice : fetchTencentPrice;
+        const p = await fetcher(a.symbol);
+        if (p > 0) a.price = p;
+      } catch (e) { errors.push(`${a.symbol}: ${e.message}`); }
+    } else if (a.type === 'crypto') {
+      try {
+        const p = await fetchCryptoPriceUsd(a.symbol);
+        if (p > 0) a.price = p;
+      } catch (e) { errors.push(`${a.symbol}: ${e.message}`); }
+    }
+  }
+  persistOverseasAssets();
+  renderOverseas();
+  setLoading('btn-oa-refresh', false);
+  if (errors.length) alert('部分项目刷新失败：\n' + errors.join('\n') + '\n\n可手动编辑单价。');
+}
+
 async function pushToGitHub() {
   clearLog(); setLoading('btn-push', true);
   if (!ghConfig.token) { log('✖ 请先填写 Token', 'err'); setLoading('btn-push', false); return; }
-  const payload = { trades, settings, equitySnapshots, humanmadeTrades, humanmadeCashflows, humanmadeFxCache };
+  const payload = { trades, settings, equitySnapshots, humanmadeTrades, humanmadeCashflows, humanmadeFxCache, overseasAssets, overseasFxRates, overseasFxDate };
   const content = JSON.stringify(payload, null, 2);
   try {
     if (!ghConfig.gistId) {
@@ -2187,7 +2554,10 @@ async function pullFromGitHub() {
     if (payload.humanmadeTrades) humanmadeTrades = payload.humanmadeTrades;
     if (payload.humanmadeCashflows) humanmadeCashflows = payload.humanmadeCashflows;
     if (payload.humanmadeFxCache) humanmadeFxCache = payload.humanmadeFxCache;
-    persistTrades(); persistSettings(); persistEquitySnapshots(); persistHumanmadeTrades(); persistHumanmadeCashflows(); persistHumanmadeFxCache(); initSettingsUI(); renderAll();
+    if (payload.overseasAssets) overseasAssets = payload.overseasAssets;
+    if (payload.overseasFxRates) overseasFxRates = payload.overseasFxRates;
+    if (payload.overseasFxDate) overseasFxDate = payload.overseasFxDate;
+    persistTrades(); persistSettings(); persistEquitySnapshots(); persistHumanmadeTrades(); persistHumanmadeCashflows(); persistHumanmadeFxCache(); persistOverseasAssets(); persistOverseasFx(); initSettingsUI(); renderAll();
     log(`✅ 恢复成功！${trades.length} 笔交易，Humanmade ${humanmadeTrades.length} 笔`, 'ok');
   } catch (e) { log(`✖ 恢复失败: ${e.message}`, 'err'); }
   finally { setLoading('btn-pull', false); }
@@ -2255,7 +2625,7 @@ function applyUrlConfig() {
 
 // ==================== 导入导出 ====================
 function exportJSON() {
-  const blob = new Blob([JSON.stringify({ trades, settings, equitySnapshots, humanmadeTrades, humanmadeCashflows, humanmadeFxCache }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ trades, settings, equitySnapshots, humanmadeTrades, humanmadeCashflows, humanmadeFxCache, overseasAssets, overseasFxRates, overseasFxDate }, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `trades_${localDateStr()}.json`; a.click(); URL.revokeObjectURL(url);
 }
@@ -2271,7 +2641,10 @@ function importJSON(input) {
       if (data.humanmadeTrades) humanmadeTrades = data.humanmadeTrades;
       if (data.humanmadeCashflows) humanmadeCashflows = data.humanmadeCashflows;
       if (data.humanmadeFxCache) humanmadeFxCache = data.humanmadeFxCache;
-      persistTrades(); persistSettings(); persistEquitySnapshots(); persistHumanmadeTrades(); persistHumanmadeCashflows(); persistHumanmadeFxCache(); initSettingsUI(); renderAll();
+      if (data.overseasAssets) overseasAssets = data.overseasAssets;
+      if (data.overseasFxRates) overseasFxRates = data.overseasFxRates;
+      if (data.overseasFxDate) overseasFxDate = data.overseasFxDate;
+      persistTrades(); persistSettings(); persistEquitySnapshots(); persistHumanmadeTrades(); persistHumanmadeCashflows(); persistHumanmadeFxCache(); persistOverseasAssets(); persistOverseasFx(); initSettingsUI(); renderAll();
       alert(`导入成功，共 ${trades.length} 笔交易，Humanmade ${humanmadeTrades.length} 笔`);
     } catch (err) { alert('解析失败: ' + err.message); }
   };
